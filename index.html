@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#11130f">
-  <meta name="description" content="A private, browser-only circular Schulte focus exercise. Find 1 through 36 as quickly and accurately as you can.">
+  <meta name="description" content="A private, browser-only circular Schulte focus exercise with 36- and 60-number boards, difficulty presets, and custom challenges.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='29' fill='%23d9ff55' stroke='%2311130f' stroke-width='6'/%3E%3Cpath d='M32 4v56M4 32h56M12 12l40 40M52 12L12 52' stroke='%2311130f' stroke-width='5'/%3E%3C/svg%3E">
-  <title>Schulte Focus — 1 to 36</title>
+  <title>Schulte Focus — Circular 36 &amp; 60</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -36,7 +36,7 @@
         <svg id="board" class="board" viewBox="-230 -230 460 460" role="group" aria-label="Circular board containing numbers 1 through 36"></svg>
         <div class="start-layer" id="startLayer">
           <button class="start-button" id="startButton" type="button">Start</button>
-          <p>Find 1 → 36</p>
+          <p id="startCopy">Find 1 → 36</p>
         </div>
       </div>
 
@@ -47,7 +47,22 @@
         <button class="shuffle-button" id="resetButton" type="button">New board</button>
       </div>
 
-      <div class="difficulty-controls" aria-label="Difficulty options">
+      <div class="preset-control">
+        <label for="presetSelect">Difficulty preset</label>
+        <select id="presetSelect">
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+          <option value="extra-hard">Extra Hard</option>
+          <option value="max">Max</option>
+          <option value="hell">Hell</option>
+          <option value="custom">Custom</option>
+        </select>
+        <p id="presetSummary">3 rings · Still · Color hints · No reset</p>
+        <p class="debug-indicator" id="debugIndicator" hidden>DEBUG MODE · 8 NUMBERS</p>
+      </div>
+
+      <div class="difficulty-controls" id="customControls" aria-label="Custom difficulty options" hidden>
         <fieldset class="movement-control">
           <legend>Ring movement</legend>
           <div class="segmented-control" id="movementOptions">
@@ -78,6 +93,11 @@
               <input id="resetOnMistakeToggle" type="checkbox">
               <span class="toggle-track" aria-hidden="true"><span></span></span>
             </label>
+            <label class="toggle-control ring-count-control">
+              <span class="toggle-copy"><strong>Fourth ring</strong><small>Increase the board from 36 to 60 numbers</small></span>
+              <input id="fourRingsToggle" type="checkbox">
+              <span class="toggle-track" aria-hidden="true"><span></span></span>
+            </label>
           </div>
         </fieldset>
       </div>
@@ -97,10 +117,10 @@
       <p class="eyebrow">How to play</p>
       <h2>Find every number in order.</h2>
       <ol>
-        <li>Press Start, then tap 1, 2, 3, continuing to 36.</li>
+        <li>Press Start, then tap 1, 2, 3, continuing to the final number.</li>
         <li>Keep your eyes near the centre instead of following each ring.</li>
         <li>Normally, a wrong tap adds a mistake but does not end the round.</li>
-        <li>For a harder round, continuously spin the rings, move them after each answer, keep solved numbers uncolored, or reset the round after a wrong tap.</li>
+        <li>Choose a preset, or use Custom to combine movement, no-color, reset, and fourth-ring options.</li>
       </ol>
       <p>This is a visual-search exercise, not a medical assessment.</p>
     </form>

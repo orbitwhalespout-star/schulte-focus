@@ -1,19 +1,15 @@
-import { continuousSpinPlan, createBoard, createSession, difficultyBadges, nextRingRotations, selectNumber } from './game.js';
+import { boardLayout, continuousSpinPlan, createBoard, createSession, difficultyBadges, nextRingRotations, normalizeBest, presetConfiguration, selectNumber } from './game.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
-const SIZE = 36;
 const BEST_KEY = 'schulte-focus-best-v1';
 const SETTINGS_KEY = 'schulte-focus-settings-v1';
-const rings = [
-  { inner: 0, outer: 78, count: 6 },
-  { inner: 78, outer: 148, count: 12 },
-  { inner: 148, outer: 220, count: 18 },
-];
+
 
 const boardElement = document.querySelector('#board');
 const boardWrap = document.querySelector('#boardWrap');
 const startLayer = document.querySelector('#startLayer');
 const startButton = document.querySelector('#startButton');
+const startCopy = document.querySelector('#startCopy');
 const resetButton = document.querySelector('#resetButton');
 const nextNumber = document.querySelector('#nextNumber');
 const timerElement = document.querySelector('#timer');
@@ -24,6 +20,11 @@ const lastTapElement = document.querySelector('#lastTap');
 const movementInputs = [...document.querySelectorAll('input[name="movement"]')];
 const noColorToggle = document.querySelector('#noColorToggle');
 const resetOnMistakeToggle = document.querySelector('#resetOnMistakeToggle');
+const fourRingsToggle = document.querySelector('#fourRingsToggle');
+const presetSelect = document.querySelector('#presetSelect');
+const presetSummary = document.querySelector('#presetSummary');
+const debugIndicator = document.querySelector('#debugIndicator');
+const customControls = document.querySelector('#customControls');
 const gameAnnouncement = document.querySelector('#gameAnnouncement');
 const howDialog = document.querySelector('#howDialog');
 const resultDialog = document.querySelector('#resultDialog');
@@ -31,15 +32,65 @@ const resultDifficulty = document.querySelector('#resultDifficulty');
 const resultBadges = document.querySelector('#resultBadges');
 
 let board = [];
+let activeLayout = boardLayout();
+let boardSize = activeLayout.size;
 let session = null;
 let animationFrame = null;
-let ringRotations = [0, 0, 0];
+let ringRotations = Array(activeLayout.rings.length).fill(0);
 let spinTimer = null;
 let resetTimer = null;
 let announcementFrame = null;
+let debugMode = false;
+let newBoardClickCount = 0;
+
+function selectedPreset() {
+  return presetSelect.value;
+}
+
+function customConfiguration() {
+  return {
+    movement: document.querySelector('input[name="movement"]:checked')?.value ?? 'still',
+    noColor: noColorToggle.checked,
+    resetOnMistake: resetOnMistakeToggle.checked,
+    fourRings: fourRingsToggle.checked,
+  };
+}
+
+function currentConfiguration() {
+  const preset = selectedPreset();
+  const configured = presetConfiguration(preset) ?? customConfiguration();
+  return {
+    ...configured,
+    preset,
+    fourRings: debugMode || configured.fourRings,
+    debug: debugMode,
+    size: boardSize,
+  };
+}
 
 function movementMode() {
-  return document.querySelector('input[name="movement"]:checked')?.value ?? 'still';
+  return currentConfiguration().movement;
+}
+
+function updatePresetPresentation() {
+  const config = currentConfiguration();
+  const movement = config.movement === 'after-tap' ? 'Spin after tap' : config.movement === 'continuous' ? 'Continuous' : 'Still';
+  presetSummary.textContent = `${config.fourRings ? 4 : 3} rings · ${movement} · ${config.noColor ? 'No color cues' : 'Color hints'} · ${config.resetOnMistake ? 'Reset on miss' : 'No reset'}`;
+  customControls.hidden = selectedPreset() !== 'custom';
+  debugIndicator.hidden = !debugMode;
+}
+
+function configureBoardLayout() {
+  const config = currentConfiguration();
+  activeLayout = boardLayout({ fourRings: config.fourRings, debug: debugMode });
+  boardSize = activeLayout.size;
+  ringRotations = Array(activeLayout.rings.length).fill(0);
+  const diameter = activeLayout.viewRadius * 2;
+  boardElement.setAttribute('viewBox', `${-activeLayout.viewRadius} ${-activeLayout.viewRadius} ${diameter} ${diameter}`);
+  boardElement.setAttribute('aria-label', `Circular board containing numbers 1 through ${boardSize}`);
+  startCopy.textContent = `Find 1 → ${boardSize}`;
+  boardWrap.classList.toggle('four-rings', activeLayout.rings.length === 4);
+  boardWrap.classList.toggle('debug-board', debugMode);
 }
 
 function polar(radius, angle) {
@@ -71,7 +122,7 @@ function renderBoard() {
   boardElement.replaceChildren();
   let boardIndex = 0;
 
-  rings.forEach((ring, ringIndex) => {
+  activeLayout.rings.forEach((ring, ringIndex) => {
     const ringGroup = makeSvgElement('g', { class: 'ring', 'data-ring': ringIndex });
     ringGroup.dataset.rotation = ringRotations[ringIndex];
     ringGroup.setAttribute('transform', `rotate(${ringRotations[ringIndex]} 0 0)`);
@@ -126,12 +177,13 @@ function updateTimer() {
 }
 
 function updateStatus() {
-  const found = session ? Math.min(session.next - 1, SIZE) : 0;
-  progressElement.textContent = `${found} / ${SIZE}`;
+  const config = currentConfiguration();
+  const found = session ? Math.min(session.next - 1, boardSize) : 0;
+  progressElement.textContent = `${found} / ${boardSize}`;
   mistakesElement.textContent = session?.mistakes ?? 0;
   lastTapElement.textContent = session?.lastTapped ?? '—';
-  lastTapCounter.hidden = !noColorToggle.checked;
-  boardWrap.classList.toggle('no-color', noColorToggle.checked);
+  lastTapCounter.hidden = !config.noColor;
+  boardWrap.classList.toggle('no-color', config.noColor);
   nextNumber.textContent = session?.status === 'complete' ? '✓' : session?.next ?? 1;
 }
 
@@ -205,7 +257,7 @@ function spinRings() {
 function startContinuousSpin() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-  const plan = continuousSpinPlan();
+  const plan = continuousSpinPlan(activeLayout.rings.length);
   document.querySelectorAll('.ring').forEach((ring, index) => {
     const { degrees, durationSeconds } = plan[index];
     const ringAnimation = makeSvgElement('animateTransform', {
@@ -260,9 +312,9 @@ function restartActiveRound() {
   cancelAnimationFrame(animationFrame);
   window.clearTimeout(spinTimer);
   stopContinuousSpin();
-  board = createBoard(SIZE);
-  session = createSession(SIZE, performance.now());
-  ringRotations = [0, 0, 0];
+  board = createBoard(boardSize);
+  session = createSession(boardSize, performance.now());
+  ringRotations = Array(activeLayout.rings.length).fill(0);
   renderBoard();
   boardWrap.classList.remove('is-idle', 'is-spinning', 'is-resetting', 'shake');
   startLayer.hidden = true;
@@ -284,17 +336,18 @@ function chooseNumber(element, value) {
   session = selectNumber(session, value, performance.now());
 
   if (session.next > previousNext) {
+    const config = currentConfiguration();
     element.classList.add('solved');
     element.setAttribute('aria-disabled', 'true');
     element.setAttribute('tabindex', '-1');
     if (document.activeElement === element) element.blur();
-    if (!noColorToggle.checked) {
+    if (!config.noColor) {
       element.classList.add('found');
     }
     if (movementMode() === 'after-tap' && session.status === 'playing') spinRings();
   } else {
     element.classList.add('wrong');
-    if (resetOnMistakeToggle.checked) {
+    if (currentConfiguration().resetOnMistake) {
       boardWrap.classList.add('is-resetting');
       resetTimer = window.setTimeout(restartActiveRound, 180);
     } else {
@@ -310,19 +363,23 @@ function chooseNumber(element, value) {
 }
 
 function bestKey() {
-  const mode = movementMode();
+  const config = currentConfiguration();
+  const mode = config.movement;
   let key = BEST_KEY;
-  if (mode !== 'still' || noColorToggle.checked) {
+  if (mode !== 'still' || config.noColor) {
     const movement = mode === 'after-tap' ? 'spin' : mode;
-    const coloring = noColorToggle.checked ? 'plain' : 'colored';
+    const coloring = config.noColor ? 'plain' : 'colored';
     key = `${BEST_KEY}:${movement}:${coloring}`;
   }
-  return resetOnMistakeToggle.checked ? `${key}:reset` : key;
+  if (config.resetOnMistake) key = `${key}:reset`;
+  if (config.fourRings) key = `${key}:four-rings`;
+  if (debugMode) key = `${key}:debug-${boardSize}`;
+  return key;
 }
 
 function readBest() {
   try {
-    return JSON.parse(localStorage.getItem(bestKey()));
+    return normalizeBest(JSON.parse(localStorage.getItem(bestKey())));
   } catch {
     return null;
   }
@@ -337,30 +394,29 @@ function readSettings() {
 }
 
 function saveSettings() {
+  const custom = customConfiguration();
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({
-      movement: movementMode(),
-      noColor: noColorToggle.checked,
-      resetOnMistake: resetOnMistakeToggle.checked,
+      preset: selectedPreset(),
+      ...custom,
     }));
   } catch {
     // Privacy settings still apply when browser storage is blocked.
   }
+  updatePresetPresentation();
   updateStatus();
 }
 
 function lockDifficultyOptions(locked) {
+  presetSelect.disabled = locked;
   movementInputs.forEach(input => { input.disabled = locked; });
   noColorToggle.disabled = locked;
   resetOnMistakeToggle.disabled = locked;
+  fourRingsToggle.disabled = locked;
 }
 
 function renderResultDifficulty() {
-  const labels = difficultyBadges({
-    movement: movementMode(),
-    noColor: noColorToggle.checked,
-    resetOnMistake: resetOnMistakeToggle.checked,
-  });
+  const labels = difficultyBadges(currentConfiguration());
   const badges = labels.map(label => {
     const badge = document.createElement('span');
     badge.className = 'difficulty-badge';
@@ -402,9 +458,10 @@ function prepareBoard() {
   resetTimer = null;
   stopContinuousSpin();
   boardWrap.classList.remove('is-spinning', 'is-resetting', 'shake');
-  board = createBoard(SIZE);
+  updatePresetPresentation();
+  configureBoardLayout();
+  board = createBoard(boardSize);
   session = null;
-  ringRotations = [0, 0, 0];
   timerElement.textContent = '00:00.0';
   clearGameAnnouncement();
   lockDifficultyOptions(false);
@@ -415,7 +472,7 @@ function prepareBoard() {
 }
 
 function startRound() {
-  session = createSession(SIZE, performance.now());
+  session = createSession(boardSize, performance.now());
   lockDifficultyOptions(true);
   boardWrap.classList.remove('is-idle');
   startLayer.hidden = true;
@@ -425,10 +482,24 @@ function startRound() {
 }
 
 startButton.addEventListener('click', startRound);
-resetButton.addEventListener('click', prepareBoard);
+resetButton.addEventListener('click', () => {
+  newBoardClickCount += 1;
+  const activatedDebug = !debugMode && newBoardClickCount >= 10;
+  if (activatedDebug) debugMode = true;
+  prepareBoard();
+  if (activatedDebug) gameAnnouncement.textContent = 'Debug mode enabled. Eight-number board.';
+});
 movementInputs.forEach(input => input.addEventListener('change', saveSettings));
 noColorToggle.addEventListener('change', saveSettings);
 resetOnMistakeToggle.addEventListener('change', saveSettings);
+fourRingsToggle.addEventListener('change', () => {
+  saveSettings();
+  prepareBoard();
+});
+presetSelect.addEventListener('change', () => {
+  saveSettings();
+  prepareBoard();
+});
 document.querySelector('#howButton').addEventListener('click', () => howDialog.showModal());
 document.querySelector('#playAgainButton').addEventListener('click', () => {
   resultDialog.close();
@@ -439,7 +510,13 @@ const savedSettings = readSettings();
 const savedMovement = ['still', 'continuous', 'after-tap'].includes(savedSettings.movement)
   ? savedSettings.movement
   : savedSettings.continuous ? 'continuous' : savedSettings.spin ? 'after-tap' : 'still';
+const validPresets = ['easy', 'medium', 'hard', 'extra-hard', 'max', 'hell', 'custom'];
+const legacyIsEasy = savedMovement === 'still' && !savedSettings.noColor && !savedSettings.resetOnMistake && !savedSettings.fourRings;
+presetSelect.value = validPresets.includes(savedSettings.preset)
+  ? savedSettings.preset
+  : legacyIsEasy ? 'easy' : 'custom';
 document.querySelector(`input[name="movement"][value="${savedMovement}"]`).checked = true;
 noColorToggle.checked = Boolean(savedSettings.noColor);
 resetOnMistakeToggle.checked = Boolean(savedSettings.resetOnMistake);
+fourRingsToggle.checked = Boolean(savedSettings.fourRings);
 prepareBoard();

@@ -1,7 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { continuousSpinPlan, createBoard, createSession, difficultyBadges, nextRingRotations, selectNumber } from '../src/game.js';
+import {
+  boardLayout,
+  continuousSpinPlan,
+  createBoard,
+  createSession,
+  difficultyBadges,
+  nextRingRotations,
+  normalizeBest,
+  presetConfiguration,
+  selectNumber,
+} from '../src/game.js';
 
 test('createBoard returns every number exactly once', () => {
   const board = createBoard(36, () => 0.5);
@@ -42,28 +52,73 @@ test('selecting the final number completes the session with elapsed time', () =>
   assert.equal(complete.next, 3);
 });
 
-test('nextRingRotations uses small alternating movements for all three rings', () => {
-  const values = [0, 0.5, 0.75];
+test('nextRingRotations uses small alternating movements for every active ring', () => {
+  const values = [0, 0.5, 0.75, 0.25];
   const random = () => values.shift();
-  assert.deepEqual(nextRingRotations([0, 10, 20], random), [45, -45, 71.25]);
+  assert.deepEqual(nextRingRotations([0, 10, 20, 30], random), [45, -45, 71.25, 2.5]);
 });
+
 test('continuousSpinPlan alternates direction at slow distinct constant speeds', () => {
-  const plan = continuousSpinPlan();
-  assert.deepEqual(plan, [
+  assert.deepEqual(continuousSpinPlan(4), [
     { degrees: 360, durationSeconds: 36 },
     { degrees: -360, durationSeconds: 48 },
     { degrees: 360, durationSeconds: 60 },
+    { degrees: -360, durationSeconds: 72 },
   ]);
 });
 
-test('difficultyBadges omits default play and names enabled modifiers concisely', () => {
-  assert.deepEqual(difficultyBadges({ movement: 'still', noColor: false, resetOnMistake: false }), []);
-  assert.deepEqual(difficultyBadges({ movement: 'continuous', noColor: true, resetOnMistake: true }), [
+test('presetConfiguration defines the six difficulty levels and leaves Custom editable', () => {
+  assert.deepEqual(presetConfiguration('easy'), { movement: 'still', noColor: false, resetOnMistake: false, fourRings: false });
+  assert.deepEqual(presetConfiguration('medium'), { movement: 'still', noColor: true, resetOnMistake: false, fourRings: false });
+  assert.deepEqual(presetConfiguration('hard'), { movement: 'after-tap', noColor: false, resetOnMistake: false, fourRings: false });
+  assert.deepEqual(presetConfiguration('extra-hard'), { movement: 'after-tap', noColor: true, resetOnMistake: true, fourRings: false });
+  assert.deepEqual(presetConfiguration('max'), { movement: 'continuous', noColor: true, resetOnMistake: false, fourRings: true });
+  assert.deepEqual(presetConfiguration('hell'), { movement: 'continuous', noColor: true, resetOnMistake: true, fourRings: true });
+  assert.equal(presetConfiguration('custom'), null);
+  assert.throws(() => presetConfiguration('unknown'), RangeError);
+});
+
+test('boardLayout returns 36, 60, or an 8-number four-ring debug board', () => {
+  assert.deepEqual(boardLayout(), { size: 36, viewRadius: 230, rings: [
+    { inner: 0, outer: 78, count: 6 },
+    { inner: 78, outer: 148, count: 12 },
+    { inner: 148, outer: 220, count: 18 },
+  ] });
+  const four = boardLayout({ fourRings: true });
+  assert.equal(four.size, 60);
+  assert.deepEqual(four.rings.map(ring => ring.count), [6, 12, 18, 24]);
+  assert.equal(four.viewRadius, 250);
+  const debug = boardLayout({ debug: true });
+  assert.equal(debug.size, 8);
+  assert.deepEqual(debug.rings.map(ring => ring.count), [2, 2, 2, 2]);
+  assert.equal(debug.viewRadius, 250);
+});
+
+test('difficultyBadges shows presets/debug and omits unmodified Custom play', () => {
+  assert.deepEqual(difficultyBadges({ preset: 'custom', movement: 'still' }), []);
+  assert.deepEqual(difficultyBadges({ preset: 'easy', movement: 'still' }), ['EASY']);
+  assert.deepEqual(difficultyBadges({
+    preset: 'hell', movement: 'continuous', noColor: true, resetOnMistake: true, fourRings: true, debug: true, size: 8,
+  }), [
+    'DEBUG · 8',
+    'HELL',
     'NO COLOR CUES',
     'CONTINUOUS SPIN',
     'RESET ON MISS',
+    'FOUR RINGS',
   ]);
-  assert.deepEqual(difficultyBadges({ movement: 'after-tap', noColor: false, resetOnMistake: false }), [
+  assert.deepEqual(difficultyBadges({ preset: 'custom', movement: 'after-tap', fourRings: true }), [
     'SPIN AFTER TAP',
+    'FOUR RINGS',
   ]);
+});
+
+test('normalizeBest accepts current and legacy scores while rejecting malformed Safari-local data', () => {
+  assert.deepEqual(normalizeBest({ elapsedMs: 1234, mistakes: 2 }), { elapsedMs: 1234, mistakes: 2 });
+  assert.deepEqual(normalizeBest({ elapsedMs: 1234, mistakes: 'bad' }), { elapsedMs: 1234, mistakes: 0 });
+  assert.deepEqual(normalizeBest(1234), { elapsedMs: 1234, mistakes: 0 });
+  assert.equal(normalizeBest({ elapsedMs: '1234' }), null);
+  assert.equal(normalizeBest({}), null);
+  assert.equal(normalizeBest(-1), null);
+  assert.equal(normalizeBest(null), null);
 });
