@@ -197,6 +197,7 @@ h1 {
   gap: 10px;
   padding-top: 12px;
 }
+.continuous-control { grid-column: 1 / -1; }
 .toggle-control {
   position: relative;
   min-height: 62px;

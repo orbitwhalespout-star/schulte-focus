@@ -11,6 +11,14 @@ export function createBoard(size, random = Math.random) {
   return values;
 }
 
+export function continuousSpinPlan() {
+  return [
+    { degrees: 360, durationSeconds: 36 },
+    { degrees: -360, durationSeconds: 48 },
+    { degrees: 360, durationSeconds: 60 },
+  ];
+}
+
 export function nextRingRotations(current, random = Math.random) {
   return current.map(angle => angle + 120 + random() * 240);
 }
