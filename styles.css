@@ -124,7 +124,7 @@ h1 {
   touch-action: manipulation;
 }
 
-.sector { cursor: pointer; outline: none; }
+.sector { cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; }
 .sector path {
   fill: var(--surface);
   stroke: var(--line);
@@ -149,6 +149,11 @@ h1 {
 .sector.wrong path { fill: var(--error); }
 .board-wrap.no-color .sector:not(.wrong):hover path { fill: var(--surface); }
 .board-wrap.no-color .sector.solved:focus-visible path { fill: var(--surface); }
+.sector:not(.solved):active path,
+.board-wrap.no-color .sector:not(.solved):active path {
+  fill: var(--accent);
+  transition-duration: 0s;
+}
 .board-wrap.is-spinning .sector { pointer-events: none; }
 
 .board-wrap.is-idle .board { filter: blur(3px) grayscale(0.2); opacity: 0.42; }
@@ -193,11 +198,55 @@ h1 {
 .shuffle-button { margin-left: auto; }
 .difficulty-controls {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   padding-top: 12px;
 }
-.continuous-control { grid-column: 1 / -1; }
+.movement-control { min-width: 0; margin: 0; padding: 0; border: 0; }
+.movement-control legend {
+  margin: 0 0 6px 2px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 760;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.segmented-control {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid rgb(17 19 15 / 24%);
+  border-radius: 14px;
+  background: rgb(197 198 190 / 35%);
+}
+.segmented-control label { position: relative; cursor: pointer; }
+.segmented-control input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.segmented-control span {
+  min-height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 760;
+  cursor: pointer;
+}
+.segmented-control input:checked + span {
+  border-color: var(--ink);
+  color: var(--ink);
+  background: var(--accent);
+  box-shadow: 0 1px 0 rgb(17 19 15 / 10%);
+}
+.segmented-control input:focus-visible + span { outline: 3px solid var(--accent-deep); outline-offset: 2px; }
+.segmented-control:has(input:disabled) { opacity: 0.56; }
+.segmented-control:has(input:disabled) label,
+.segmented-control:has(input:disabled) span { cursor: not-allowed; }
 .toggle-control {
   position: relative;
   min-height: 62px;
