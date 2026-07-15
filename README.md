@@ -2,7 +2,7 @@
 
 A fast, mobile-first circular Schulte visual-search exercise. Find the numbers from 1 through 36 in order.
 
-Optional difficulty controls can rotate all three rings slowly at constant alternating speeds, move them independently after each correct tap, or disable solved-number coloring. The two movement modes are mutually exclusive. No-color mode shows an explicit **Last tap** counter so the player can recover their place. Best times are kept separately for each difficulty combination.
+Optional difficulty controls can rotate all three rings slowly at constant alternating speeds, move them with smaller eased alternating rotations after each correct tap, disable solved-number coloring, or reshuffle and restart the round after a mistake. The two movement modes are mutually exclusive. No-color mode shows an explicit **Last tap** counter so the player can recover their place. Reset-on-mistake and all movement/color combinations keep separate personal-best records.
 
 ## Privacy
 

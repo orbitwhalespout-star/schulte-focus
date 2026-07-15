@@ -23,6 +23,8 @@ const lastTapCounter = document.querySelector('#lastTapCounter');
 const lastTapElement = document.querySelector('#lastTap');
 const movementInputs = [...document.querySelectorAll('input[name="movement"]')];
 const noColorToggle = document.querySelector('#noColorToggle');
+const resetOnMistakeToggle = document.querySelector('#resetOnMistakeToggle');
+const gameAnnouncement = document.querySelector('#gameAnnouncement');
 const howDialog = document.querySelector('#howDialog');
 const resultDialog = document.querySelector('#resultDialog');
 
@@ -31,6 +33,8 @@ let session = null;
 let animationFrame = null;
 let ringRotations = [0, 0, 0];
 let spinTimer = null;
+let resetTimer = null;
+let announcementFrame = null;
 
 function movementMode() {
   return document.querySelector('input[name="movement"]:checked')?.value ?? 'still';
@@ -156,7 +160,10 @@ function spinRings() {
         type: 'rotate',
         from: `${previous} 0 0`,
         to: `${next} 0 0`,
-        dur: '0.52s',
+        dur: '0.9s',
+        calcMode: 'spline',
+        keyTimes: '0;1',
+        keySplines: '0.22 1 0.36 1',
         fill: 'freeze',
       });
       ring.append(ringAnimation);
@@ -169,7 +176,10 @@ function spinRings() {
           type: 'rotate',
           from: `${-previous} ${x} ${y}`,
           to: `${-next} ${x} ${y}`,
-          dur: '0.52s',
+          dur: '0.9s',
+          calcMode: 'spline',
+          keyTimes: '0;1',
+          keySplines: '0.22 1 0.36 1',
           fill: 'freeze',
         });
         text.append(textAnimation);
@@ -182,12 +192,12 @@ function spinRings() {
           text.setAttribute('transform', `rotate(${-next} ${text.getAttribute('x')} ${text.getAttribute('y')})`);
         });
         ring.querySelectorAll('animateTransform').forEach(animation => animation.remove());
-      }, 540);
+      }, 920);
     }
     ring.dataset.rotation = next;
   });
 
-  spinTimer = window.setTimeout(() => boardWrap.classList.remove('is-spinning'), reducedMotion ? 0 : 550);
+  spinTimer = window.setTimeout(() => boardWrap.classList.remove('is-spinning'), reducedMotion ? 0 : 930);
 }
 
 function startContinuousSpin() {
@@ -237,8 +247,37 @@ function stopContinuousSpin() {
   });
 }
 
+function clearGameAnnouncement() {
+  if (announcementFrame !== null) window.cancelAnimationFrame(announcementFrame);
+  announcementFrame = null;
+  gameAnnouncement.textContent = '';
+}
+
+function restartActiveRound() {
+  resetTimer = null;
+  cancelAnimationFrame(animationFrame);
+  window.clearTimeout(spinTimer);
+  stopContinuousSpin();
+  board = createBoard(SIZE);
+  session = createSession(SIZE, performance.now());
+  ringRotations = [0, 0, 0];
+  renderBoard();
+  boardWrap.classList.remove('is-idle', 'is-spinning', 'is-resetting', 'shake');
+  startLayer.hidden = true;
+  lockDifficultyOptions(true);
+  updateStatus();
+  document.querySelector('[data-value="1"]').focus({ preventScroll: true });
+  clearGameAnnouncement();
+  announcementFrame = window.requestAnimationFrame(() => {
+    announcementFrame = null;
+    gameAnnouncement.textContent = 'Wrong number. Board reset. Find 1.';
+  });
+  if (movementMode() === 'continuous') startContinuousSpin();
+  updateTimer();
+}
+
 function chooseNumber(element, value) {
-  if (!session || session.status !== 'playing' || boardWrap.classList.contains('is-spinning') || element.classList.contains('solved')) return;
+  if (!session || session.status !== 'playing' || resetTimer !== null || boardWrap.classList.contains('is-spinning') || element.classList.contains('solved')) return;
   const previousNext = session.next;
   session = selectNumber(session, value, performance.now());
 
@@ -253,10 +292,15 @@ function chooseNumber(element, value) {
     if (movementMode() === 'after-tap' && session.status === 'playing') spinRings();
   } else {
     element.classList.add('wrong');
-    boardWrap.classList.remove('shake');
-    void boardWrap.offsetWidth;
-    boardWrap.classList.add('shake');
-    window.setTimeout(() => element.classList.remove('wrong'), 220);
+    if (resetOnMistakeToggle.checked) {
+      boardWrap.classList.add('is-resetting');
+      resetTimer = window.setTimeout(restartActiveRound, 180);
+    } else {
+      boardWrap.classList.remove('shake');
+      void boardWrap.offsetWidth;
+      boardWrap.classList.add('shake');
+      window.setTimeout(() => element.classList.remove('wrong'), 220);
+    }
   }
 
   updateStatus();
@@ -265,10 +309,13 @@ function chooseNumber(element, value) {
 
 function bestKey() {
   const mode = movementMode();
-  if (mode === 'still' && !noColorToggle.checked) return BEST_KEY;
-  const movement = mode === 'after-tap' ? 'spin' : mode;
-  const coloring = noColorToggle.checked ? 'plain' : 'colored';
-  return `${BEST_KEY}:${movement}:${coloring}`;
+  let key = BEST_KEY;
+  if (mode !== 'still' || noColorToggle.checked) {
+    const movement = mode === 'after-tap' ? 'spin' : mode;
+    const coloring = noColorToggle.checked ? 'plain' : 'colored';
+    key = `${BEST_KEY}:${movement}:${coloring}`;
+  }
+  return resetOnMistakeToggle.checked ? `${key}:reset` : key;
 }
 
 function readBest() {
@@ -292,6 +339,7 @@ function saveSettings() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({
       movement: movementMode(),
       noColor: noColorToggle.checked,
+      resetOnMistake: resetOnMistakeToggle.checked,
     }));
   } catch {
     // Privacy settings still apply when browser storage is blocked.
@@ -302,10 +350,14 @@ function saveSettings() {
 function lockDifficultyOptions(locked) {
   movementInputs.forEach(input => { input.disabled = locked; });
   noColorToggle.disabled = locked;
+  resetOnMistakeToggle.disabled = locked;
 }
 
 function finishRound() {
   cancelAnimationFrame(animationFrame);
+  clearGameAnnouncement();
+  window.clearTimeout(resetTimer);
+  resetTimer = null;
   stopContinuousSpin();
   lockDifficultyOptions(false);
   timerElement.textContent = formatTime(session.elapsedMs);
@@ -327,12 +379,15 @@ function finishRound() {
 function prepareBoard() {
   cancelAnimationFrame(animationFrame);
   window.clearTimeout(spinTimer);
+  window.clearTimeout(resetTimer);
+  resetTimer = null;
   stopContinuousSpin();
-  boardWrap.classList.remove('is-spinning');
+  boardWrap.classList.remove('is-spinning', 'is-resetting', 'shake');
   board = createBoard(SIZE);
   session = null;
   ringRotations = [0, 0, 0];
   timerElement.textContent = '00:00.0';
+  clearGameAnnouncement();
   lockDifficultyOptions(false);
   boardWrap.classList.add('is-idle');
   startLayer.hidden = false;
@@ -354,6 +409,7 @@ startButton.addEventListener('click', startRound);
 resetButton.addEventListener('click', prepareBoard);
 movementInputs.forEach(input => input.addEventListener('change', saveSettings));
 noColorToggle.addEventListener('change', saveSettings);
+resetOnMistakeToggle.addEventListener('change', saveSettings);
 document.querySelector('#howButton').addEventListener('click', () => howDialog.showModal());
 document.querySelector('#playAgainButton').addEventListener('click', () => {
   resultDialog.close();
@@ -366,4 +422,5 @@ const savedMovement = ['still', 'continuous', 'after-tap'].includes(savedSetting
   : savedSettings.continuous ? 'continuous' : savedSettings.spin ? 'after-tap' : 'still';
 document.querySelector(`input[name="movement"][value="${savedMovement}"]`).checked = true;
 noColorToggle.checked = Boolean(savedSettings.noColor);
+resetOnMistakeToggle.checked = Boolean(savedSettings.resetOnMistake);
 prepareBoard();
