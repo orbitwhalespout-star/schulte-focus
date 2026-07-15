@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createBoard, createSession, selectNumber } from '../src/game.js';
+import { createBoard, createSession, nextRingRotations, selectNumber } from '../src/game.js';
 
 test('createBoard returns every number exactly once', () => {
   const board = createBoard(36, () => 0.5);
@@ -22,6 +22,7 @@ test('createBoard rejects unsupported board sizes', () => {
 
 test('a session advances only when the expected number is selected', () => {
   const session = createSession(3, 1_000);
+  assert.equal(session.lastTapped, null);
   const wrong = selectNumber(session, 2, 1_250);
   assert.equal(wrong.next, 1);
   assert.equal(wrong.mistakes, 1);
@@ -29,6 +30,7 @@ test('a session advances only when the expected number is selected', () => {
 
   const correct = selectNumber(wrong, 1, 1_500);
   assert.equal(correct.next, 2);
+  assert.equal(correct.lastTapped, 1);
   assert.equal(correct.mistakes, 1);
 });
 
@@ -38,4 +40,10 @@ test('selecting the final number completes the session with elapsed time', () =>
   assert.equal(complete.status, 'complete');
   assert.equal(complete.elapsedMs, 1_234);
   assert.equal(complete.next, 3);
+});
+
+test('nextRingRotations independently advances all three rings', () => {
+  const values = [0, 0.5, 0.75];
+  const random = () => values.shift();
+  assert.deepEqual(nextRingRotations([0, 10, 20], random), [120, 250, 320]);
 });
