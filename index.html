@@ -12,6 +12,7 @@
 </head>
 <body>
   <main class="app-shell">
+    <p id="gameAnnouncement" class="sr-only" aria-live="assertive" aria-atomic="true"></p>
     <header class="topbar">
       <a class="brand" href="./" aria-label="Schulte Focus home">
         <span class="brand-mark" aria-hidden="true"></span>
@@ -64,11 +65,21 @@
             </label>
           </div>
         </fieldset>
-        <label class="toggle-control color-control">
-          <span class="toggle-copy"><strong>Disable coloring</strong><small>Keep solved sectors unchanged and show Last tap</small></span>
-          <input id="noColorToggle" type="checkbox">
-          <span class="toggle-track" aria-hidden="true"><span></span></span>
-        </label>
+        <fieldset class="challenge-control">
+          <legend>Challenge options</legend>
+          <div class="challenge-list">
+            <label class="toggle-control color-control">
+              <span class="toggle-copy"><strong>Disable coloring</strong><small>Keep solved sectors unchanged and show Last tap</small></span>
+              <input id="noColorToggle" type="checkbox">
+              <span class="toggle-track" aria-hidden="true"><span></span></span>
+            </label>
+            <label class="toggle-control reset-control">
+              <span class="toggle-copy"><strong>Reset on mistake</strong><small>Reshuffle and restart the timer after a wrong tap</small></span>
+              <input id="resetOnMistakeToggle" type="checkbox">
+              <span class="toggle-track" aria-hidden="true"><span></span></span>
+            </label>
+          </div>
+        </fieldset>
       </div>
 
       <p class="coach-copy">Keep your gaze near the centre and search with your peripheral vision. Accuracy first, then speed.</p>
@@ -88,8 +99,8 @@
       <ol>
         <li>Press Start, then tap 1, 2, 3, continuing to 36.</li>
         <li>Keep your eyes near the centre instead of following each ring.</li>
-        <li>A wrong tap adds a mistake but does not end the round.</li>
-        <li>For a harder round, continuously spin the rings, move them after each answer, or keep solved numbers uncolored.</li>
+        <li>Normally, a wrong tap adds a mistake but does not end the round.</li>
+        <li>For a harder round, continuously spin the rings, move them after each answer, keep solved numbers uncolored, or reset the round after a wrong tap.</li>
       </ol>
       <p>This is a visual-search exercise, not a medical assessment.</p>
     </form>

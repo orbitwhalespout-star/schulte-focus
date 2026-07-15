@@ -20,7 +20,15 @@ export function continuousSpinPlan() {
 }
 
 export function nextRingRotations(current, random = Math.random) {
-  return current.map(angle => angle + 120 + random() * 240);
+  const motion = [
+    { direction: 1, minimum: 45, range: 50 },
+    { direction: -1, minimum: 35, range: 40 },
+    { direction: 1, minimum: 25, range: 35 },
+  ];
+  return current.map((angle, index) => {
+    const { direction, minimum, range } = motion[index];
+    return angle + direction * (minimum + random() * range);
+  });
 }
 
 export function createSession(size, startedAt) {

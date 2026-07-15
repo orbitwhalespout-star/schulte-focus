@@ -42,10 +42,10 @@ test('selecting the final number completes the session with elapsed time', () =>
   assert.equal(complete.next, 3);
 });
 
-test('nextRingRotations independently advances all three rings', () => {
+test('nextRingRotations uses small alternating movements for all three rings', () => {
   const values = [0, 0.5, 0.75];
   const random = () => values.shift();
-  assert.deepEqual(nextRingRotations([0, 10, 20], random), [120, 250, 320]);
+  assert.deepEqual(nextRingRotations([0, 10, 20], random), [45, -45, 71.25]);
 });
 
 test('continuousSpinPlan alternates direction at slow distinct constant speeds', () => {
