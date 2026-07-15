@@ -1,8 +1,9 @@
-import { createBoard, createSession, selectNumber } from './game.js';
+import { createBoard, createSession, nextRingRotations, selectNumber } from './game.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const SIZE = 36;
 const BEST_KEY = 'schulte-focus-best-v1';
+const SETTINGS_KEY = 'schulte-focus-settings-v1';
 const rings = [
   { inner: 0, outer: 78, count: 6 },
   { inner: 78, outer: 148, count: 12 },
@@ -18,12 +19,18 @@ const nextNumber = document.querySelector('#nextNumber');
 const timerElement = document.querySelector('#timer');
 const progressElement = document.querySelector('#progress');
 const mistakesElement = document.querySelector('#mistakes');
+const lastTapCounter = document.querySelector('#lastTapCounter');
+const lastTapElement = document.querySelector('#lastTap');
+const spinToggle = document.querySelector('#spinToggle');
+const noColorToggle = document.querySelector('#noColorToggle');
 const howDialog = document.querySelector('#howDialog');
 const resultDialog = document.querySelector('#resultDialog');
 
 let board = [];
 let session = null;
 let animationFrame = null;
+let ringRotations = [0, 0, 0];
+let spinTimer = null;
 
 function polar(radius, angle) {
   const radians = (angle - 90) * Math.PI / 180;
@@ -55,6 +62,9 @@ function renderBoard() {
   let boardIndex = 0;
 
   rings.forEach((ring, ringIndex) => {
+    const ringGroup = makeSvgElement('g', { class: 'ring', 'data-ring': ringIndex });
+    ringGroup.dataset.rotation = ringRotations[ringIndex];
+    ringGroup.setAttribute('transform', `rotate(${ringRotations[ringIndex]} 0 0)`);
     const step = 360 / ring.count;
     const rotation = ringIndex % 2 === 0 ? 0 : step / 2;
 
@@ -84,9 +94,10 @@ function renderBoard() {
           chooseNumber(group, value);
         }
       });
-      boardElement.append(group);
+      ringGroup.append(group);
       boardIndex += 1;
     }
+    boardElement.append(ringGroup);
   });
 }
 
@@ -108,17 +119,87 @@ function updateStatus() {
   const found = session ? Math.min(session.next - 1, SIZE) : 0;
   progressElement.textContent = `${found} / ${SIZE}`;
   mistakesElement.textContent = session?.mistakes ?? 0;
+  lastTapElement.textContent = session?.lastTapped ?? '—';
+  lastTapCounter.hidden = !noColorToggle.checked;
+  boardWrap.classList.toggle('no-color', noColorToggle.checked);
   nextNumber.textContent = session?.status === 'complete' ? '✓' : session?.next ?? 1;
 }
 
+function spinRings() {
+  ringRotations = nextRingRotations(ringRotations);
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  boardWrap.classList.add('is-spinning');
+  window.clearTimeout(spinTimer);
+
+  document.querySelectorAll('.ring').forEach((ring, index) => {
+    const previous = Number(ring.dataset.rotation ?? 0);
+    const next = ringRotations[index];
+    ring.querySelectorAll('animateTransform').forEach(animation => animation.remove());
+    const texts = [...ring.querySelectorAll('text')];
+    ring.setAttribute('transform', `rotate(${previous} 0 0)`);
+    texts.forEach(text => {
+      text.setAttribute('transform', `rotate(${-previous} ${text.getAttribute('x')} ${text.getAttribute('y')})`);
+    });
+
+    if (reducedMotion) {
+      ring.setAttribute('transform', `rotate(${next} 0 0)`);
+      texts.forEach(text => {
+        text.setAttribute('transform', `rotate(${-next} ${text.getAttribute('x')} ${text.getAttribute('y')})`);
+      });
+    } else {
+      const ringAnimation = makeSvgElement('animateTransform', {
+        attributeName: 'transform',
+        type: 'rotate',
+        from: `${previous} 0 0`,
+        to: `${next} 0 0`,
+        dur: '0.52s',
+        fill: 'freeze',
+      });
+      ring.append(ringAnimation);
+      ringAnimation.beginElement();
+      texts.forEach(text => {
+        const x = text.getAttribute('x');
+        const y = text.getAttribute('y');
+        const textAnimation = makeSvgElement('animateTransform', {
+          attributeName: 'transform',
+          type: 'rotate',
+          from: `${-previous} ${x} ${y}`,
+          to: `${-next} ${x} ${y}`,
+          dur: '0.52s',
+          fill: 'freeze',
+        });
+        text.append(textAnimation);
+        textAnimation.beginElement();
+      });
+      window.setTimeout(() => {
+        if (!ring.contains(ringAnimation)) return;
+        ring.setAttribute('transform', `rotate(${next} 0 0)`);
+        texts.forEach(text => {
+          text.setAttribute('transform', `rotate(${-next} ${text.getAttribute('x')} ${text.getAttribute('y')})`);
+        });
+        ring.querySelectorAll('animateTransform').forEach(animation => animation.remove());
+      }, 540);
+    }
+    ring.dataset.rotation = next;
+  });
+
+  spinTimer = window.setTimeout(() => boardWrap.classList.remove('is-spinning'), reducedMotion ? 0 : 550);
+}
+
 function chooseNumber(element, value) {
-  if (!session || session.status !== 'playing' || element.classList.contains('found')) return;
+  if (!session || session.status !== 'playing' || boardWrap.classList.contains('is-spinning') || element.classList.contains('solved')) return;
   const previousNext = session.next;
   session = selectNumber(session, value, performance.now());
 
   if (session.next > previousNext) {
-    element.classList.add('found');
+    element.classList.add('solved');
     element.setAttribute('aria-disabled', 'true');
+    element.setAttribute('tabindex', '-1');
+    if (document.activeElement === element) element.blur();
+    if (!noColorToggle.checked) {
+      element.classList.add('found');
+    }
+    if (spinToggle.checked && session.status === 'playing') spinRings();
   } else {
     element.classList.add('wrong');
     boardWrap.classList.remove('shake');
@@ -131,21 +212,58 @@ function chooseNumber(element, value) {
   if (session.status === 'complete') finishRound();
 }
 
+function bestKey() {
+  if (!spinToggle.checked && !noColorToggle.checked) return BEST_KEY;
+  const movement = spinToggle.checked ? 'spin' : 'still';
+  const coloring = noColorToggle.checked ? 'plain' : 'colored';
+  return `${BEST_KEY}:${movement}:${coloring}`;
+}
+
 function readBest() {
   try {
-    return JSON.parse(localStorage.getItem(BEST_KEY));
+    return JSON.parse(localStorage.getItem(bestKey()));
   } catch {
     return null;
   }
 }
 
+function readSettings() {
+  try {
+    return JSON.parse(localStorage.getItem(SETTINGS_KEY)) ?? {};
+  } catch {
+    return {};
+  }
+}
+
+function saveSettings() {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+      spin: spinToggle.checked,
+      noColor: noColorToggle.checked,
+    }));
+  } catch {
+    // Privacy settings still apply when browser storage is blocked.
+  }
+  updateStatus();
+}
+
+function lockDifficultyOptions(locked) {
+  spinToggle.disabled = locked;
+  noColorToggle.disabled = locked;
+}
+
 function finishRound() {
   cancelAnimationFrame(animationFrame);
+  lockDifficultyOptions(false);
   timerElement.textContent = formatTime(session.elapsedMs);
   const oldBest = readBest();
   const isBest = !oldBest || session.elapsedMs < oldBest.elapsedMs;
   const best = isBest ? { elapsedMs: session.elapsedMs, mistakes: session.mistakes } : oldBest;
-  localStorage.setItem(BEST_KEY, JSON.stringify(best));
+  try {
+    localStorage.setItem(bestKey(), JSON.stringify(best));
+  } catch {
+    // Completing a round must not depend on persistent storage access.
+  }
 
   document.querySelector('#resultTime').textContent = formatTime(session.elapsedMs);
   document.querySelector('#resultMistakes').textContent = session.mistakes;
@@ -155,9 +273,13 @@ function finishRound() {
 
 function prepareBoard() {
   cancelAnimationFrame(animationFrame);
+  window.clearTimeout(spinTimer);
+  boardWrap.classList.remove('is-spinning');
   board = createBoard(SIZE);
   session = null;
+  ringRotations = [0, 0, 0];
   timerElement.textContent = '00:00.0';
+  lockDifficultyOptions(false);
   boardWrap.classList.add('is-idle');
   startLayer.hidden = false;
   renderBoard();
@@ -166,6 +288,7 @@ function prepareBoard() {
 
 function startRound() {
   session = createSession(SIZE, performance.now());
+  lockDifficultyOptions(true);
   boardWrap.classList.remove('is-idle');
   startLayer.hidden = true;
   updateStatus();
@@ -174,10 +297,15 @@ function startRound() {
 
 startButton.addEventListener('click', startRound);
 resetButton.addEventListener('click', prepareBoard);
+spinToggle.addEventListener('change', saveSettings);
+noColorToggle.addEventListener('change', saveSettings);
 document.querySelector('#howButton').addEventListener('click', () => howDialog.showModal());
 document.querySelector('#playAgainButton').addEventListener('click', () => {
   resultDialog.close();
   prepareBoard();
 });
 
+const savedSettings = readSettings();
+spinToggle.checked = Boolean(savedSettings.spin);
+noColorToggle.checked = Boolean(savedSettings.noColor);
 prepareBoard();

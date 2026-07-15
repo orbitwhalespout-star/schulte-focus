@@ -11,10 +11,15 @@ export function createBoard(size, random = Math.random) {
   return values;
 }
 
+export function nextRingRotations(current, random = Math.random) {
+  return current.map(angle => angle + 120 + random() * 240);
+}
+
 export function createSession(size, startedAt) {
   return {
     size,
     next: 1,
+    lastTapped: null,
     mistakes: 0,
     startedAt,
     elapsedMs: 0,
@@ -33,6 +38,7 @@ export function selectNumber(session, selected, selectedAt) {
   return {
     ...session,
     next,
+    lastTapped: selected,
     status: complete ? 'complete' : 'playing',
     elapsedMs: complete ? selectedAt - session.startedAt : session.elapsedMs,
   };
