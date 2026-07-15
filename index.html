@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#11130f">
+  <meta name="description" content="A private, browser-only circular Schulte focus exercise. Find 1 through 36 as quickly and accurately as you can.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='29' fill='%23d9ff55' stroke='%2311130f' stroke-width='6'/%3E%3Cpath d='M32 4v56M4 32h56M12 12l40 40M52 12L12 52' stroke='%2311130f' stroke-width='5'/%3E%3C/svg%3E">
+  <title>Schulte Focus — 1 to 36</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Schulte Focus home">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>Schulte Focus</span>
+      </a>
+      <button class="text-button" id="howButton" type="button">How to play</button>
+    </header>
+
+    <section class="game" aria-labelledby="gameTitle">
+      <div class="game-heading">
+        <div>
+          <p class="eyebrow">Circular visual search</p>
+          <h1 id="gameTitle">Find <span id="nextNumber">1</span></h1>
+        </div>
+        <div class="timer" aria-label="Elapsed time">
+          <span id="timer">00:00.0</span>
+        </div>
+      </div>
+
+      <div class="board-wrap" id="boardWrap">
+        <svg id="board" class="board" viewBox="-230 -230 460 460" role="group" aria-label="Circular board containing numbers 1 through 36"></svg>
+        <div class="start-layer" id="startLayer">
+          <button class="start-button" id="startButton" type="button">Start</button>
+          <p>Find 1 → 36</p>
+        </div>
+      </div>
+
+      <div class="status-row" aria-live="polite">
+        <div><span class="status-label">Progress</span><strong id="progress">0 / 36</strong></div>
+        <div><span class="status-label">Mistakes</span><strong id="mistakes">0</strong></div>
+        <button class="shuffle-button" id="resetButton" type="button">New board</button>
+      </div>
+
+      <p class="coach-copy">Keep your gaze near the centre and search with your peripheral vision. Accuracy first, then speed.</p>
+    </section>
+
+    <footer>
+      <span>No account. No analytics.</span>
+      <span>Your result stays in this browser.</span>
+    </footer>
+  </main>
+
+  <dialog id="howDialog" class="dialog">
+    <form method="dialog">
+      <button class="dialog-close" aria-label="Close instructions">×</button>
+      <p class="eyebrow">How to play</p>
+      <h2>Find every number in order.</h2>
+      <ol>
+        <li>Press Start, then tap 1, 2, 3, continuing to 36.</li>
+        <li>Keep your eyes near the centre instead of following each ring.</li>
+        <li>A wrong tap adds a mistake but does not end the round.</li>
+      </ol>
+      <p>This is a visual-search exercise, not a medical assessment.</p>
+    </form>
+  </dialog>
+
+  <dialog id="resultDialog" class="dialog result-dialog">
+    <div>
+      <p class="eyebrow">Round complete</p>
+      <h2 id="resultTime">00:00.0</h2>
+      <div class="result-grid">
+        <div><span>Mistakes</span><strong id="resultMistakes">0</strong></div>
+        <div><span>Personal best</span><strong id="bestTime">—</strong></div>
+      </div>
+      <button class="start-button full" id="playAgainButton" type="button">Play again</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
