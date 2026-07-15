@@ -11,6 +11,15 @@ export function createBoard(size, random = Math.random) {
   return values;
 }
 
+export function difficultyBadges({ movement = 'still', noColor = false, resetOnMistake = false } = {}) {
+  const badges = [];
+  if (noColor) badges.push('NO COLOR CUES');
+  if (movement === 'continuous') badges.push('CONTINUOUS SPIN');
+  if (movement === 'after-tap') badges.push('SPIN AFTER TAP');
+  if (resetOnMistake) badges.push('RESET ON MISS');
+  return badges;
+}
+
 export function continuousSpinPlan() {
   return [
     { degrees: 360, durationSeconds: 36 },

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { continuousSpinPlan, createBoard, createSession, nextRingRotations, selectNumber } from '../src/game.js';
+import { continuousSpinPlan, createBoard, createSession, difficultyBadges, nextRingRotations, selectNumber } from '../src/game.js';
 
 test('createBoard returns every number exactly once', () => {
   const board = createBoard(36, () => 0.5);
@@ -47,11 +47,23 @@ test('nextRingRotations uses small alternating movements for all three rings', (
   const random = () => values.shift();
   assert.deepEqual(nextRingRotations([0, 10, 20], random), [45, -45, 71.25]);
 });
-
 test('continuousSpinPlan alternates direction at slow distinct constant speeds', () => {
-  assert.deepEqual(continuousSpinPlan(), [
+  const plan = continuousSpinPlan();
+  assert.deepEqual(plan, [
     { degrees: 360, durationSeconds: 36 },
     { degrees: -360, durationSeconds: 48 },
     { degrees: 360, durationSeconds: 60 },
+  ]);
+});
+
+test('difficultyBadges omits default play and names enabled modifiers concisely', () => {
+  assert.deepEqual(difficultyBadges({ movement: 'still', noColor: false, resetOnMistake: false }), []);
+  assert.deepEqual(difficultyBadges({ movement: 'continuous', noColor: true, resetOnMistake: true }), [
+    'NO COLOR CUES',
+    'CONTINUOUS SPIN',
+    'RESET ON MISS',
+  ]);
+  assert.deepEqual(difficultyBadges({ movement: 'after-tap', noColor: false, resetOnMistake: false }), [
+    'SPIN AFTER TAP',
   ]);
 });
