@@ -211,6 +211,45 @@ h1 {
 .status-label { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; }
 .status-row strong { font-variant-numeric: tabular-nums; }
 .shuffle-button { margin-left: auto; }
+.preset-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.72fr);
+  align-items: end;
+  gap: 7px 12px;
+  padding-top: 12px;
+}
+.preset-control label {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 760;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.preset-control select {
+  min-height: 44px;
+  padding: 0 38px 0 13px;
+  border: 1px solid var(--ink);
+  border-radius: 12px;
+  color: var(--ink);
+  background: var(--surface);
+  font: 760 0.86rem/1 "Avenir Next", Avenir, "Segoe UI", sans-serif;
+  cursor: pointer;
+}
+.preset-control select:focus-visible { outline: 3px solid var(--accent-deep); outline-offset: 2px; }
+.preset-control select:disabled { cursor: not-allowed; opacity: 0.56; }
+.preset-control > p { grid-column: 1 / -1; margin: 0; }
+#presetSummary { color: var(--muted); font-size: 0.72rem; line-height: 1.35; }
+.debug-indicator {
+  width: max-content;
+  padding: 5px 8px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  color: var(--ink);
+  background: var(--accent);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
 .difficulty-controls {
   display: grid;
   gap: 10px;
