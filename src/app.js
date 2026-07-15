@@ -21,8 +21,7 @@ const progressElement = document.querySelector('#progress');
 const mistakesElement = document.querySelector('#mistakes');
 const lastTapCounter = document.querySelector('#lastTapCounter');
 const lastTapElement = document.querySelector('#lastTap');
-const continuousToggle = document.querySelector('#continuousToggle');
-const spinToggle = document.querySelector('#spinToggle');
+const movementInputs = [...document.querySelectorAll('input[name="movement"]')];
 const noColorToggle = document.querySelector('#noColorToggle');
 const howDialog = document.querySelector('#howDialog');
 const resultDialog = document.querySelector('#resultDialog');
@@ -32,6 +31,10 @@ let session = null;
 let animationFrame = null;
 let ringRotations = [0, 0, 0];
 let spinTimer = null;
+
+function movementMode() {
+  return document.querySelector('input[name="movement"]:checked')?.value ?? 'still';
+}
 
 function polar(radius, angle) {
   const radians = (angle - 90) * Math.PI / 180;
@@ -247,7 +250,7 @@ function chooseNumber(element, value) {
     if (!noColorToggle.checked) {
       element.classList.add('found');
     }
-    if (spinToggle.checked && session.status === 'playing') spinRings();
+    if (movementMode() === 'after-tap' && session.status === 'playing') spinRings();
   } else {
     element.classList.add('wrong');
     boardWrap.classList.remove('shake');
@@ -261,8 +264,9 @@ function chooseNumber(element, value) {
 }
 
 function bestKey() {
-  if (!continuousToggle.checked && !spinToggle.checked && !noColorToggle.checked) return BEST_KEY;
-  const movement = continuousToggle.checked ? 'continuous' : spinToggle.checked ? 'spin' : 'still';
+  const mode = movementMode();
+  if (mode === 'still' && !noColorToggle.checked) return BEST_KEY;
+  const movement = mode === 'after-tap' ? 'spin' : mode;
   const coloring = noColorToggle.checked ? 'plain' : 'colored';
   return `${BEST_KEY}:${movement}:${coloring}`;
 }
@@ -286,8 +290,7 @@ function readSettings() {
 function saveSettings() {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({
-      continuous: continuousToggle.checked,
-      spin: spinToggle.checked,
+      movement: movementMode(),
       noColor: noColorToggle.checked,
     }));
   } catch {
@@ -297,8 +300,7 @@ function saveSettings() {
 }
 
 function lockDifficultyOptions(locked) {
-  continuousToggle.disabled = locked;
-  spinToggle.disabled = locked;
+  movementInputs.forEach(input => { input.disabled = locked; });
   noColorToggle.disabled = locked;
 }
 
@@ -344,20 +346,13 @@ function startRound() {
   boardWrap.classList.remove('is-idle');
   startLayer.hidden = true;
   updateStatus();
-  if (continuousToggle.checked) startContinuousSpin();
+  if (movementMode() === 'continuous') startContinuousSpin();
   updateTimer();
 }
 
 startButton.addEventListener('click', startRound);
 resetButton.addEventListener('click', prepareBoard);
-continuousToggle.addEventListener('change', () => {
-  if (continuousToggle.checked) spinToggle.checked = false;
-  saveSettings();
-});
-spinToggle.addEventListener('change', () => {
-  if (spinToggle.checked) continuousToggle.checked = false;
-  saveSettings();
-});
+movementInputs.forEach(input => input.addEventListener('change', saveSettings));
 noColorToggle.addEventListener('change', saveSettings);
 document.querySelector('#howButton').addEventListener('click', () => howDialog.showModal());
 document.querySelector('#playAgainButton').addEventListener('click', () => {
@@ -366,7 +361,9 @@ document.querySelector('#playAgainButton').addEventListener('click', () => {
 });
 
 const savedSettings = readSettings();
-continuousToggle.checked = Boolean(savedSettings.continuous);
-spinToggle.checked = Boolean(savedSettings.spin) && !continuousToggle.checked;
+const savedMovement = ['still', 'continuous', 'after-tap'].includes(savedSettings.movement)
+  ? savedSettings.movement
+  : savedSettings.continuous ? 'continuous' : savedSettings.spin ? 'after-tap' : 'still';
+document.querySelector(`input[name="movement"][value="${savedMovement}"]`).checked = true;
 noColorToggle.checked = Boolean(savedSettings.noColor);
 prepareBoard();

@@ -47,18 +47,25 @@
       </div>
 
       <div class="difficulty-controls" aria-label="Difficulty options">
-        <label class="toggle-control continuous-control">
-          <span class="toggle-copy"><strong>Continuous spin</strong><small>Slow, constant, alternating directions</small></span>
-          <input id="continuousToggle" type="checkbox">
-          <span class="toggle-track" aria-hidden="true"><span></span></span>
-        </label>
-        <label class="toggle-control">
-          <span class="toggle-copy"><strong>Spin after each tap</strong><small>Jump after a correct answer</small></span>
-          <input id="spinToggle" type="checkbox">
-          <span class="toggle-track" aria-hidden="true"><span></span></span>
-        </label>
-        <label class="toggle-control">
-          <span class="toggle-copy"><strong>Disable coloring</strong><small>Show Last tap instead</small></span>
+        <fieldset class="movement-control">
+          <legend>Ring movement</legend>
+          <div class="segmented-control" id="movementOptions">
+            <label>
+              <input id="motionStill" type="radio" name="movement" value="still" checked>
+              <span>Still</span>
+            </label>
+            <label>
+              <input id="motionContinuous" type="radio" name="movement" value="continuous">
+              <span>Continuous</span>
+            </label>
+            <label>
+              <input id="motionAfterTap" type="radio" name="movement" value="after-tap">
+              <span>After tap</span>
+            </label>
+          </div>
+        </fieldset>
+        <label class="toggle-control color-control">
+          <span class="toggle-copy"><strong>Disable coloring</strong><small>Keep solved sectors unchanged and show Last tap</small></span>
           <input id="noColorToggle" type="checkbox">
           <span class="toggle-track" aria-hidden="true"><span></span></span>
         </label>
