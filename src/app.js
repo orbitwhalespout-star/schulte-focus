@@ -1,4 +1,4 @@
-import { continuousSpinPlan, createBoard, createSession, nextRingRotations, selectNumber } from './game.js';
+import { continuousSpinPlan, createBoard, createSession, difficultyBadges, nextRingRotations, selectNumber } from './game.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const SIZE = 36;
@@ -27,6 +27,8 @@ const resetOnMistakeToggle = document.querySelector('#resetOnMistakeToggle');
 const gameAnnouncement = document.querySelector('#gameAnnouncement');
 const howDialog = document.querySelector('#howDialog');
 const resultDialog = document.querySelector('#resultDialog');
+const resultDifficulty = document.querySelector('#resultDifficulty');
+const resultBadges = document.querySelector('#resultBadges');
 
 let board = [];
 let session = null;
@@ -353,6 +355,22 @@ function lockDifficultyOptions(locked) {
   resetOnMistakeToggle.disabled = locked;
 }
 
+function renderResultDifficulty() {
+  const labels = difficultyBadges({
+    movement: movementMode(),
+    noColor: noColorToggle.checked,
+    resetOnMistake: resetOnMistakeToggle.checked,
+  });
+  const badges = labels.map(label => {
+    const badge = document.createElement('span');
+    badge.className = 'difficulty-badge';
+    badge.textContent = label;
+    return badge;
+  });
+  resultBadges.replaceChildren(...badges);
+  resultDifficulty.hidden = labels.length === 0;
+}
+
 function finishRound() {
   cancelAnimationFrame(animationFrame);
   clearGameAnnouncement();
@@ -373,6 +391,7 @@ function finishRound() {
   document.querySelector('#resultTime').textContent = formatTime(session.elapsedMs);
   document.querySelector('#resultMistakes').textContent = session.mistakes;
   document.querySelector('#bestTime').textContent = `${formatTime(best.elapsedMs)}${isBest ? ' · new' : ''}`;
+  renderResultDifficulty();
   resultDialog.showModal();
 }
 
