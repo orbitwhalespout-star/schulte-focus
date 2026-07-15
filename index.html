@@ -47,8 +47,13 @@
       </div>
 
       <div class="difficulty-controls" aria-label="Difficulty options">
+        <label class="toggle-control continuous-control">
+          <span class="toggle-copy"><strong>Continuous spin</strong><small>Slow, constant, alternating directions</small></span>
+          <input id="continuousToggle" type="checkbox">
+          <span class="toggle-track" aria-hidden="true"><span></span></span>
+        </label>
         <label class="toggle-control">
-          <span class="toggle-copy"><strong>Spin all 3 rings</strong><small>After each correct tap</small></span>
+          <span class="toggle-copy"><strong>Spin after each tap</strong><small>Jump after a correct answer</small></span>
           <input id="spinToggle" type="checkbox">
           <span class="toggle-track" aria-hidden="true"><span></span></span>
         </label>
@@ -77,7 +82,7 @@
         <li>Press Start, then tap 1, 2, 3, continuing to 36.</li>
         <li>Keep your eyes near the centre instead of following each ring.</li>
         <li>A wrong tap adds a mistake but does not end the round.</li>
-        <li>For a harder round, spin the rings or keep solved numbers uncolored.</li>
+        <li>For a harder round, continuously spin the rings, move them after each answer, or keep solved numbers uncolored.</li>
       </ol>
       <p>This is a visual-search exercise, not a medical assessment.</p>
     </form>

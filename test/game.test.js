@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createBoard, createSession, nextRingRotations, selectNumber } from '../src/game.js';
+import { continuousSpinPlan, createBoard, createSession, nextRingRotations, selectNumber } from '../src/game.js';
 
 test('createBoard returns every number exactly once', () => {
   const board = createBoard(36, () => 0.5);
@@ -46,4 +46,12 @@ test('nextRingRotations independently advances all three rings', () => {
   const values = [0, 0.5, 0.75];
   const random = () => values.shift();
   assert.deepEqual(nextRingRotations([0, 10, 20], random), [120, 250, 320]);
+});
+
+test('continuousSpinPlan alternates direction at slow distinct constant speeds', () => {
+  assert.deepEqual(continuousSpinPlan(), [
+    { degrees: 360, durationSeconds: 36 },
+    { degrees: -360, durationSeconds: 48 },
+    { degrees: 360, durationSeconds: 60 },
+  ]);
 });

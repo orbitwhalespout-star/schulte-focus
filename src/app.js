@@ -1,4 +1,4 @@
-import { createBoard, createSession, nextRingRotations, selectNumber } from './game.js';
+import { continuousSpinPlan, createBoard, createSession, nextRingRotations, selectNumber } from './game.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const SIZE = 36;
@@ -21,6 +21,7 @@ const progressElement = document.querySelector('#progress');
 const mistakesElement = document.querySelector('#mistakes');
 const lastTapCounter = document.querySelector('#lastTapCounter');
 const lastTapElement = document.querySelector('#lastTap');
+const continuousToggle = document.querySelector('#continuousToggle');
 const spinToggle = document.querySelector('#spinToggle');
 const noColorToggle = document.querySelector('#noColorToggle');
 const howDialog = document.querySelector('#howDialog');
@@ -186,6 +187,53 @@ function spinRings() {
   spinTimer = window.setTimeout(() => boardWrap.classList.remove('is-spinning'), reducedMotion ? 0 : 550);
 }
 
+function startContinuousSpin() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const plan = continuousSpinPlan();
+  document.querySelectorAll('.ring').forEach((ring, index) => {
+    const { degrees, durationSeconds } = plan[index];
+    const ringAnimation = makeSvgElement('animateTransform', {
+      attributeName: 'transform',
+      type: 'rotate',
+      from: '0 0 0',
+      to: `${degrees} 0 0`,
+      dur: `${durationSeconds}s`,
+      repeatCount: 'indefinite',
+      calcMode: 'linear',
+      'data-continuous': 'true',
+    });
+    ring.append(ringAnimation);
+    ringAnimation.beginElement();
+
+    ring.querySelectorAll('text').forEach(text => {
+      const x = text.getAttribute('x');
+      const y = text.getAttribute('y');
+      const textAnimation = makeSvgElement('animateTransform', {
+        attributeName: 'transform',
+        type: 'rotate',
+        from: `0 ${x} ${y}`,
+        to: `${-degrees} ${x} ${y}`,
+        dur: `${durationSeconds}s`,
+        repeatCount: 'indefinite',
+        calcMode: 'linear',
+        'data-continuous': 'true',
+      });
+      text.append(textAnimation);
+      textAnimation.beginElement();
+    });
+  });
+}
+
+function stopContinuousSpin() {
+  document.querySelectorAll('animateTransform[data-continuous="true"]').forEach(animation => animation.remove());
+  document.querySelectorAll('.ring').forEach(ring => {
+    ring.setAttribute('transform', 'rotate(0 0 0)');
+    ring.dataset.rotation = '0';
+    ring.querySelectorAll('text').forEach(text => text.removeAttribute('transform'));
+  });
+}
+
 function chooseNumber(element, value) {
   if (!session || session.status !== 'playing' || boardWrap.classList.contains('is-spinning') || element.classList.contains('solved')) return;
   const previousNext = session.next;
@@ -213,8 +261,8 @@ function chooseNumber(element, value) {
 }
 
 function bestKey() {
-  if (!spinToggle.checked && !noColorToggle.checked) return BEST_KEY;
-  const movement = spinToggle.checked ? 'spin' : 'still';
+  if (!continuousToggle.checked && !spinToggle.checked && !noColorToggle.checked) return BEST_KEY;
+  const movement = continuousToggle.checked ? 'continuous' : spinToggle.checked ? 'spin' : 'still';
   const coloring = noColorToggle.checked ? 'plain' : 'colored';
   return `${BEST_KEY}:${movement}:${coloring}`;
 }
@@ -238,6 +286,7 @@ function readSettings() {
 function saveSettings() {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+      continuous: continuousToggle.checked,
       spin: spinToggle.checked,
       noColor: noColorToggle.checked,
     }));
@@ -248,12 +297,14 @@ function saveSettings() {
 }
 
 function lockDifficultyOptions(locked) {
+  continuousToggle.disabled = locked;
   spinToggle.disabled = locked;
   noColorToggle.disabled = locked;
 }
 
 function finishRound() {
   cancelAnimationFrame(animationFrame);
+  stopContinuousSpin();
   lockDifficultyOptions(false);
   timerElement.textContent = formatTime(session.elapsedMs);
   const oldBest = readBest();
@@ -274,6 +325,7 @@ function finishRound() {
 function prepareBoard() {
   cancelAnimationFrame(animationFrame);
   window.clearTimeout(spinTimer);
+  stopContinuousSpin();
   boardWrap.classList.remove('is-spinning');
   board = createBoard(SIZE);
   session = null;
@@ -292,12 +344,20 @@ function startRound() {
   boardWrap.classList.remove('is-idle');
   startLayer.hidden = true;
   updateStatus();
+  if (continuousToggle.checked) startContinuousSpin();
   updateTimer();
 }
 
 startButton.addEventListener('click', startRound);
 resetButton.addEventListener('click', prepareBoard);
-spinToggle.addEventListener('change', saveSettings);
+continuousToggle.addEventListener('change', () => {
+  if (continuousToggle.checked) spinToggle.checked = false;
+  saveSettings();
+});
+spinToggle.addEventListener('change', () => {
+  if (spinToggle.checked) continuousToggle.checked = false;
+  saveSettings();
+});
 noColorToggle.addEventListener('change', saveSettings);
 document.querySelector('#howButton').addEventListener('click', () => howDialog.showModal());
 document.querySelector('#playAgainButton').addEventListener('click', () => {
@@ -306,6 +366,7 @@ document.querySelector('#playAgainButton').addEventListener('click', () => {
 });
 
 const savedSettings = readSettings();
-spinToggle.checked = Boolean(savedSettings.spin);
+continuousToggle.checked = Boolean(savedSettings.continuous);
+spinToggle.checked = Boolean(savedSettings.spin) && !continuousToggle.checked;
 noColorToggle.checked = Boolean(savedSettings.noColor);
 prepareBoard();
