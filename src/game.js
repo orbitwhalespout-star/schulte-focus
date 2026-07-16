@@ -19,6 +19,7 @@ const PRESETS = {
   'extra-hard': { movement: 'still', noColor: false, resetOnMistake: false, fourRings: true },
   max: { movement: 'continuous', noColor: true, resetOnMistake: false, fourRings: true },
   torture: { movement: 'continuous', noColor: true, resetOnMistake: true, fourRings: true },
+  psycho: { movement: 'continuous', afterTapOverlay: true, noColor: true, resetOnMistake: true, fourRings: true },
 };
 
 const PRESET_LABELS = {
@@ -29,6 +30,7 @@ const PRESET_LABELS = {
   'extra-hard': 'EXTRA HARD',
   max: 'MAX',
   torture: 'TORTURE',
+  psycho: 'PSYCHO',
 };
 
 export function presetConfiguration(preset) {
@@ -104,6 +106,18 @@ export function boardLayout({ twoRings = false, fourRings = false, debug = false
   };
 }
 
+export function withinSectorTolerance({ radius, angle, inner, outer, startAngle, endAngle, tolerance = 0.1 }) {
+  const values = [radius, angle, inner, outer, startAngle, endAngle, tolerance];
+  if (!values.every(Number.isFinite) || inner < 0 || outer <= inner || endAngle <= startAngle || tolerance < 0) return false;
+  const span = endAngle - startAngle;
+  const middle = startAngle + span / 2;
+  const angularDistance = Math.abs(((angle - middle + 540) % 360) - 180);
+  const radialAllowance = (outer - inner) * tolerance;
+  return angularDistance <= span / 2 + span * tolerance
+    && radius >= Math.max(0, inner - radialAllowance)
+    && radius <= outer + radialAllowance;
+}
+
 export function normalizeBest(stored) {
   if (Number.isFinite(stored) && stored >= 0) {
     return { elapsedMs: stored, mistakes: 0 };
@@ -117,13 +131,13 @@ export function normalizeBest(stored) {
   };
 }
 
-export function difficultyBadges({ preset = 'custom', movement = 'still', noColor = false, resetOnMistake = false, twoRings = false, fourRings = false, debug = false, size = 8 } = {}) {
+export function difficultyBadges({ preset = 'custom', movement = 'still', afterTapOverlay = false, noColor = false, resetOnMistake = false, twoRings = false, fourRings = false, debug = false, size = 8 } = {}) {
   const badges = [];
   if (debug) badges.push(`DEBUG · ${size}`);
   if (preset !== 'custom' && PRESET_LABELS[preset]) badges.push(PRESET_LABELS[preset]);
   if (noColor) badges.push('NO COLOR CUES');
   if (movement === 'continuous') badges.push('CONTINUOUS SPIN');
-  if (movement === 'after-tap') badges.push('SPIN AFTER TAP');
+  if (movement === 'after-tap' || afterTapOverlay) badges.push('SPIN AFTER TAP');
   if (resetOnMistake) badges.push('RESET ON MISS');
   if (twoRings) badges.push('TWO RINGS');
   if (fourRings) badges.push('FOUR RINGS');
@@ -140,9 +154,9 @@ export function continuousSpinPlan(ringCount = 3) {
 }
 
 export function variableSpinTimeline(degrees, random = Math.random) {
-  const segmentCount = 24;
+  const segmentCount = 40;
   const totalDegrees = degrees * 4;
-  const weights = Array.from({ length: segmentCount }, () => 0.88 + random() * 0.24);
+  const weights = Array.from({ length: segmentCount }, () => 0.75 + random() * 0.5);
   const scale = segmentCount / weights.reduce((total, weight) => total + weight, 0);
   const values = [0];
   weights.forEach(weight => values.push(values.at(-1) + (totalDegrees / segmentCount) * weight * scale));

@@ -13,6 +13,7 @@ import {
   presetConfiguration,
   selectNumber,
   variableSpinTimeline,
+  withinSectorTolerance,
 } from '../src/game.js';
 
 test('createBoard returns every number exactly once', () => {
@@ -75,22 +76,34 @@ test('continuousSpinPlan alternates direction at slow distinct constant speeds',
   ]);
 });
 
-test('variableSpinTimeline creates subtle uneven speed segments over four revolutions', () => {
+test('variableSpinTimeline creates quirky uneven speed segments over four revolutions', () => {
   let index = 0;
   const timeline = variableSpinTimeline(360, () => index++ % 2);
-  assert.equal(timeline.values.length, 25);
-  assert.equal(timeline.keyTimes.length, 25);
+  assert.equal(timeline.values.length, 41);
+  assert.equal(timeline.keyTimes.length, 41);
   assert.equal(timeline.values[0], 0);
   assert.equal(timeline.values.at(-1), 1440);
   assert.equal(timeline.keyTimes[0], 0);
   assert.equal(timeline.keyTimes.at(-1), 1);
   const increments = timeline.values.slice(1).map((value, itemIndex) => value - timeline.values[itemIndex]);
   assert.equal(new Set(increments.map(value => value.toFixed(6))).size, 2);
-  assert.ok(Math.min(...increments) >= 52.8 - 1e-9);
-  assert.ok(Math.max(...increments) <= 67.2 + 1e-9);
+  assert.ok(Math.min(...increments) >= 27 - 1e-9);
+  assert.ok(Math.max(...increments) <= 45 + 1e-9);
 });
 
-test('presetConfiguration defines the seven difficulty levels and leaves Custom editable', () => {
+test('withinSectorTolerance expands only the expected wedge boundaries by ten percent', () => {
+  const sector = { inner: 60, outer: 120, startAngle: 0, endAngle: 60 };
+  assert.equal(withinSectorTolerance({ ...sector, radius: 90, angle: 30 }), true);
+  assert.equal(withinSectorTolerance({ ...sector, radius: 90, angle: 65.9 }), true);
+  assert.equal(withinSectorTolerance({ ...sector, radius: 90, angle: 66.1 }), false);
+  assert.equal(withinSectorTolerance({ ...sector, radius: 90, angle: 67 }), false);
+  assert.equal(withinSectorTolerance({ ...sector, radius: 54.1, angle: 30 }), true);
+  assert.equal(withinSectorTolerance({ ...sector, radius: 53, angle: 30 }), false);
+  assert.equal(withinSectorTolerance({ ...sector, radius: 90, angle: 90 }), false);
+  assert.equal(withinSectorTolerance({ inner: 0, outer: 60, startAngle: 330, endAngle: 390, radius: 30, angle: 2 }), true);
+});
+
+test('presetConfiguration defines the eight difficulty levels and leaves Custom editable', () => {
   assert.deepEqual(presetConfiguration('warm-up'), { movement: 'still', noColor: false, resetOnMistake: false, fourRings: false, twoRings: true });
   assert.throws(() => presetConfiguration('extra-easy'), RangeError);
   assert.deepEqual(presetConfiguration('easy'), { movement: 'still', noColor: false, resetOnMistake: false, fourRings: false });
@@ -99,6 +112,7 @@ test('presetConfiguration defines the seven difficulty levels and leaves Custom 
   assert.deepEqual(presetConfiguration('extra-hard'), { movement: 'still', noColor: false, resetOnMistake: false, fourRings: true });
   assert.deepEqual(presetConfiguration('max'), { movement: 'continuous', noColor: true, resetOnMistake: false, fourRings: true });
   assert.deepEqual(presetConfiguration('torture'), { movement: 'continuous', noColor: true, resetOnMistake: true, fourRings: true });
+  assert.deepEqual(presetConfiguration('psycho'), { movement: 'continuous', afterTapOverlay: true, noColor: true, resetOnMistake: true, fourRings: true });
   assert.throws(() => presetConfiguration('hell'), RangeError);
   assert.equal(presetConfiguration('custom'), null);
   assert.throws(() => presetConfiguration('unknown'), RangeError);
@@ -141,6 +155,16 @@ test('difficultyBadges shows presets/debug and omits unmodified Custom play', ()
     'TORTURE',
     'NO COLOR CUES',
     'CONTINUOUS SPIN',
+    'RESET ON MISS',
+    'FOUR RINGS',
+  ]);
+  assert.deepEqual(difficultyBadges({
+    preset: 'psycho', movement: 'continuous', afterTapOverlay: true, noColor: true, resetOnMistake: true, fourRings: true,
+  }), [
+    'PSYCHO',
+    'NO COLOR CUES',
+    'CONTINUOUS SPIN',
+    'SPIN AFTER TAP',
     'RESET ON MISS',
     'FOUR RINGS',
   ]);

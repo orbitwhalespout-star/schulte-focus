@@ -2,11 +2,13 @@
 
 A fast, mobile-first circular Schulte visual-search exercise. Find the numbers in order across an 18-, 36-, or 60-number board.
 
-Seven presets provide a progression from **Warm-up** through **Torture**. Warm-up uses two rings and 18 numbers. **Custom** keeps the individual movement, no-color, reset-on-mistake, and fourth-ring controls. Four-ring presets use 60 numbers. Movement modes remain mutually exclusive, labels stay upright, and each effective difficulty combination keeps a separate personal-best record.
+Eight presets provide a progression from **Warm-up** through **Psycho**. Warm-up uses two rings and 18 numbers. **Custom** keeps the individual movement, no-color, reset-on-mistake, and fourth-ring controls. Four-ring presets use 60 numbers. Movement modes remain mutually exclusive in Custom, labels stay upright, and each effective difficulty combination keeps a separate personal-best record.
 
 Completion results show the selected preset and active modifiers as concise difficulty badges.
 
-Reset on mistake reshuffles progress back to 1 without restarting the timer. After-tap movement varies both distance and duration on every tap. Torture keeps its continuous direction but adds subtle randomized speed drift; other Continuous configurations remain constant-speed.
+Reset on mistake reshuffles progress back to 1 without restarting the timer. After-tap movement varies both distance and duration on every tap. Torture keeps its continuous direction but adds a wider, quirky 40-segment randomized speed drift across four revolutions; other Continuous configurations remain constant-speed.
+
+Pointer taps receive a geometric 10% allowance around the currently expected wedge's angular and radial boundaries. This does not make an entire neighboring sector correct, and keyboard input remains exact. **Psycho** retains Torture's randomized Continuous behavior, temporarily applies the randomized Spin after tap movement after each correct non-final tap, then resumes a fresh Continuous timeline from the exact settled angle.
 
 ## Debug mode
 

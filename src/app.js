@@ -1,4 +1,4 @@
-import { afterTapDurations, boardLayout, continuousSpinPlan, createBoard, createSession, difficultyBadges, nextRingRotations, normalizeBest, presetConfiguration, selectNumber, variableSpinTimeline } from './game.js';
+import { afterTapDurations, boardLayout, continuousSpinPlan, createBoard, createSession, difficultyBadges, nextRingRotations, normalizeBest, presetConfiguration, selectNumber, variableSpinTimeline, withinSectorTolerance } from './game.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const BEST_KEY = 'schulte-focus-best-v1';
@@ -84,7 +84,13 @@ function movementMode() {
 
 function updatePresetPresentation() {
   const config = currentConfiguration();
-  const movement = config.movement === 'after-tap' ? 'Spin after tap' : config.movement === 'continuous' ? 'Continuous' : 'Still';
+  const movement = config.afterTapOverlay
+    ? 'Continuous + After tap'
+    : config.movement === 'after-tap'
+      ? 'Spin after tap'
+      : config.movement === 'continuous'
+        ? 'Continuous'
+        : 'Still';
   const ringCount = config.twoRings ? 2 : config.fourRings ? 4 : 3;
   presetSummary.textContent = `${ringCount} rings · ${movement} · ${config.noColor ? 'No color cues' : 'Color hints'} · ${config.resetOnMistake ? 'Reset on miss' : 'No reset'}`;
   customControls.hidden = selectedPreset() !== 'custom';
@@ -155,12 +161,15 @@ function renderBoard() {
         tabindex: '0',
         'aria-label': `Number ${value}`,
         'data-value': value,
+        'data-inner': ring.inner,
+        'data-outer': ring.outer,
+        'data-start-angle': start,
+        'data-end-angle': end,
       });
       const path = makeSvgElement('path', { d: sectorPath(ring.inner, ring.outer, start, end) });
       const text = makeSvgElement('text', { x: textPoint.x, y: textPoint.y });
       text.textContent = value;
       group.append(path, text);
-      group.addEventListener('click', () => chooseNumber(group, value));
       group.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
@@ -199,7 +208,21 @@ function updateStatus() {
   nextNumber.textContent = session?.status === 'complete' ? '✓' : session?.next ?? 1;
 }
 
-function spinRings() {
+function pauseContinuousSpin() {
+  document.querySelectorAll('.ring').forEach((ring, index) => {
+    const matrix = ring.getCTM();
+    const angle = matrix ? Math.atan2(matrix.b, matrix.a) * 180 / Math.PI : Number(ring.dataset.rotation ?? 0);
+    ring.querySelectorAll('animateTransform[data-continuous="true"]').forEach(animation => animation.remove());
+    ringRotations[index] = angle;
+    ring.dataset.rotation = angle;
+    ring.setAttribute('transform', `rotate(${angle} 0 0)`);
+    ring.querySelectorAll('text').forEach(text => {
+      text.setAttribute('transform', `rotate(${-angle} ${text.getAttribute('x')} ${text.getAttribute('y')})`);
+    });
+  });
+}
+
+function spinRings(resumeContinuous = false) {
   ringRotations = nextRingRotations(ringRotations);
   const durations = afterTapDurations(ringRotations.length);
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -265,16 +288,21 @@ function spinRings() {
     ring.dataset.rotation = next;
   });
 
-  spinTimer = window.setTimeout(() => boardWrap.classList.remove('is-spinning'), reducedMotion ? 0 : Math.max(...durations) + 30);
+  spinTimer = window.setTimeout(() => {
+    spinTimer = null;
+    boardWrap.classList.remove('is-spinning');
+    if (resumeContinuous && session?.status === 'playing') startContinuousSpin();
+  }, reducedMotion ? 0 : Math.max(...durations) + 30);
 }
 
 function startContinuousSpin() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   const plan = continuousSpinPlan(activeLayout.rings.length);
-  const usesSpeedDrift = selectedPreset() === 'torture';
+  const usesSpeedDrift = ['torture', 'psycho'].includes(selectedPreset());
   document.querySelectorAll('.ring').forEach((ring, index) => {
     const { degrees, durationSeconds } = plan[index];
+    const baseRotation = Number(ring.dataset.rotation ?? 0);
     const timeline = usesSpeedDrift ? variableSpinTimeline(degrees) : null;
     const animationDuration = usesSpeedDrift ? durationSeconds * 4 : durationSeconds;
     const ringAttributes = {
@@ -286,12 +314,12 @@ function startContinuousSpin() {
       'data-continuous': 'true',
     };
     if (timeline) {
-      ringAttributes.values = timeline.values.map(value => `${value} 0 0`).join(';');
+      ringAttributes.values = timeline.values.map(value => `${baseRotation + value} 0 0`).join(';');
       ringAttributes.keyTimes = timeline.keyTimes.join(';');
       ringAttributes['data-speed-drift'] = 'true';
     } else {
-      ringAttributes.from = '0 0 0';
-      ringAttributes.to = `${degrees} 0 0`;
+      ringAttributes.from = `${baseRotation} 0 0`;
+      ringAttributes.to = `${baseRotation + degrees} 0 0`;
     }
     const ringAnimation = makeSvgElement('animateTransform', ringAttributes);
     ring.append(ringAnimation);
@@ -309,12 +337,12 @@ function startContinuousSpin() {
         'data-continuous': 'true',
       };
       if (timeline) {
-        textAttributes.values = timeline.values.map(value => `${-value} ${x} ${y}`).join(';');
+        textAttributes.values = timeline.values.map(value => `${-(baseRotation + value)} ${x} ${y}`).join(';');
         textAttributes.keyTimes = timeline.keyTimes.join(';');
         textAttributes['data-speed-drift'] = 'true';
       } else {
-        textAttributes.from = `0 ${x} ${y}`;
-        textAttributes.to = `${-degrees} ${x} ${y}`;
+        textAttributes.from = `${-baseRotation} ${x} ${y}`;
+        textAttributes.to = `${-(baseRotation + degrees)} ${x} ${y}`;
       }
       const textAnimation = makeSvgElement('animateTransform', textAttributes);
       text.append(textAnimation);
@@ -361,21 +389,58 @@ function restartActiveRound() {
   updateTimer();
 }
 
-function chooseNumber(element, value) {
-  if (!session || session.status !== 'playing' || resetTimer !== null || boardWrap.classList.contains('is-spinning') || element.classList.contains('solved')) return;
+function toleratedExpectedSector(event) {
+  if (!event?.isTrusted || event.detail < 1 || !Number.isFinite(event.clientX) || !Number.isFinite(event.clientY)) return null;
+  const expected = document.querySelector(`.sector[data-value="${session.next}"]`);
+  const ring = expected?.closest('.ring');
+  const matrix = ring?.getScreenCTM();
+  if (!expected || !matrix) return null;
+  try {
+    const point = boardElement.createSVGPoint();
+    point.x = event.clientX;
+    point.y = event.clientY;
+    const local = point.matrixTransform(matrix.inverse());
+    const radius = Math.hypot(local.x, local.y);
+    const angle = (Math.atan2(local.y, local.x) * 180 / Math.PI + 450) % 360;
+    return withinSectorTolerance({
+      radius,
+      angle,
+      inner: Number(expected.dataset.inner),
+      outer: Number(expected.dataset.outer),
+      startAngle: Number(expected.dataset.startAngle),
+      endAngle: Number(expected.dataset.endAngle),
+    }) ? expected : null;
+  } catch {
+    return null;
+  }
+}
+
+function chooseNumber(element, value, event = null) {
+  if (!session || session.status !== 'playing' || resetTimer !== null || boardWrap.classList.contains('is-spinning')) return;
+  const tolerated = value === session.next ? null : toleratedExpectedSector(event);
+  const selectedElement = tolerated ?? element;
+  const selectedValue = tolerated ? session.next : value;
+  if (selectedElement.classList.contains('solved')) return;
   const previousNext = session.next;
-  session = selectNumber(session, value, performance.now());
+  session = selectNumber(session, selectedValue, performance.now());
 
   if (session.next > previousNext) {
     const config = currentConfiguration();
-    element.classList.add('solved');
-    element.setAttribute('aria-disabled', 'true');
-    element.setAttribute('tabindex', '-1');
-    if (document.activeElement === element) element.blur();
+    selectedElement.classList.add('solved');
+    selectedElement.setAttribute('aria-disabled', 'true');
+    selectedElement.setAttribute('tabindex', '-1');
+    if (document.activeElement === selectedElement) selectedElement.blur();
     if (!config.noColor) {
-      element.classList.add('found');
+      selectedElement.classList.add('found');
     }
-    if (movementMode() === 'after-tap' && session.status === 'playing') spinRings();
+    if (session.status === 'playing') {
+      if (config.afterTapOverlay) {
+        pauseContinuousSpin();
+        spinRings(true);
+      } else if (movementMode() === 'after-tap') {
+        spinRings();
+      }
+    }
   } else {
     element.classList.add('wrong');
     if (currentConfiguration().resetOnMistake) {
@@ -398,7 +463,7 @@ function bestKey() {
   const mode = config.movement;
   let key = BEST_KEY;
   if (mode !== 'still' || config.noColor) {
-    const movement = mode === 'after-tap' ? 'spin' : mode;
+    const movement = config.afterTapOverlay ? 'psycho' : mode === 'after-tap' ? 'spin' : mode;
     const coloring = config.noColor ? 'plain' : 'colored';
     key = `${BEST_KEY}:${movement}:${coloring}`;
   }
@@ -514,6 +579,15 @@ function startRound() {
   updateTimer();
 }
 
+boardElement.addEventListener('click', (event) => {
+  const sector = event.target.closest?.('.sector') ?? null;
+  if (sector) {
+    chooseNumber(sector, Number(sector.dataset.value), event);
+    return;
+  }
+  const tolerated = session?.status === 'playing' ? toleratedExpectedSector(event) : null;
+  if (tolerated) chooseNumber(tolerated, session.next);
+});
 startButton.addEventListener('click', startRound);
 resetButton.addEventListener('click', () => {
   newBoardClickCount += 1;
@@ -544,7 +618,7 @@ const savedSettings = readSettings();
 const savedMovement = ['still', 'continuous', 'after-tap'].includes(savedSettings.movement)
   ? savedSettings.movement
   : savedSettings.continuous ? 'continuous' : savedSettings.spin ? 'after-tap' : 'still';
-const validPresets = ['warm-up', 'easy', 'medium', 'hard', 'extra-hard', 'max', 'torture', 'custom'];
+const validPresets = ['warm-up', 'easy', 'medium', 'hard', 'extra-hard', 'max', 'torture', 'psycho', 'custom'];
 const migratedPreset = savedSettings.preset === 'extra-easy'
   ? 'warm-up'
   : savedSettings.preset === 'hell' ? 'torture' : savedSettings.preset;
