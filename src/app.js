@@ -1,4 +1,4 @@
-import { boardLayout, continuousSpinPlan, createBoard, createSession, difficultyBadges, nextRingRotations, normalizeBest, presetConfiguration, selectNumber } from './game.js';
+import { afterTapDurations, boardLayout, continuousSpinPlan, createBoard, createSession, difficultyBadges, nextRingRotations, normalizeBest, presetConfiguration, selectNumber, variableSpinTimeline } from './game.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const BEST_KEY = 'schulte-focus-best-v1';
@@ -201,6 +201,7 @@ function updateStatus() {
 
 function spinRings() {
   ringRotations = nextRingRotations(ringRotations);
+  const durations = afterTapDurations(ringRotations.length);
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   boardWrap.classList.add('is-spinning');
   window.clearTimeout(spinTimer);
@@ -208,6 +209,7 @@ function spinRings() {
   document.querySelectorAll('.ring').forEach((ring, index) => {
     const previous = Number(ring.dataset.rotation ?? 0);
     const next = ringRotations[index];
+    const durationMs = durations[index];
     ring.querySelectorAll('animateTransform').forEach(animation => animation.remove());
     const texts = [...ring.querySelectorAll('text')];
     ring.setAttribute('transform', `rotate(${previous} 0 0)`);
@@ -226,7 +228,7 @@ function spinRings() {
         type: 'rotate',
         from: `${previous} 0 0`,
         to: `${next} 0 0`,
-        dur: '0.9s',
+        dur: `${durationMs / 1000}s`,
         calcMode: 'spline',
         keyTimes: '0;1',
         keySplines: '0.22 1 0.36 1',
@@ -242,7 +244,7 @@ function spinRings() {
           type: 'rotate',
           from: `${-previous} ${x} ${y}`,
           to: `${-next} ${x} ${y}`,
-          dur: '0.9s',
+          dur: `${durationMs / 1000}s`,
           calcMode: 'spline',
           keyTimes: '0;1',
           keySplines: '0.22 1 0.36 1',
@@ -258,46 +260,63 @@ function spinRings() {
           text.setAttribute('transform', `rotate(${-next} ${text.getAttribute('x')} ${text.getAttribute('y')})`);
         });
         ring.querySelectorAll('animateTransform').forEach(animation => animation.remove());
-      }, 920);
+      }, durationMs + 20);
     }
     ring.dataset.rotation = next;
   });
 
-  spinTimer = window.setTimeout(() => boardWrap.classList.remove('is-spinning'), reducedMotion ? 0 : 930);
+  spinTimer = window.setTimeout(() => boardWrap.classList.remove('is-spinning'), reducedMotion ? 0 : Math.max(...durations) + 30);
 }
 
 function startContinuousSpin() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   const plan = continuousSpinPlan(activeLayout.rings.length);
+  const usesSpeedDrift = selectedPreset() === 'torture';
   document.querySelectorAll('.ring').forEach((ring, index) => {
     const { degrees, durationSeconds } = plan[index];
-    const ringAnimation = makeSvgElement('animateTransform', {
+    const timeline = usesSpeedDrift ? variableSpinTimeline(degrees) : null;
+    const animationDuration = usesSpeedDrift ? durationSeconds * 4 : durationSeconds;
+    const ringAttributes = {
       attributeName: 'transform',
       type: 'rotate',
-      from: '0 0 0',
-      to: `${degrees} 0 0`,
-      dur: `${durationSeconds}s`,
+      dur: `${animationDuration}s`,
       repeatCount: 'indefinite',
       calcMode: 'linear',
       'data-continuous': 'true',
-    });
+    };
+    if (timeline) {
+      ringAttributes.values = timeline.values.map(value => `${value} 0 0`).join(';');
+      ringAttributes.keyTimes = timeline.keyTimes.join(';');
+      ringAttributes['data-speed-drift'] = 'true';
+    } else {
+      ringAttributes.from = '0 0 0';
+      ringAttributes.to = `${degrees} 0 0`;
+    }
+    const ringAnimation = makeSvgElement('animateTransform', ringAttributes);
     ring.append(ringAnimation);
     ringAnimation.beginElement();
 
     ring.querySelectorAll('text').forEach(text => {
       const x = text.getAttribute('x');
       const y = text.getAttribute('y');
-      const textAnimation = makeSvgElement('animateTransform', {
+      const textAttributes = {
         attributeName: 'transform',
         type: 'rotate',
-        from: `0 ${x} ${y}`,
-        to: `${-degrees} ${x} ${y}`,
-        dur: `${durationSeconds}s`,
+        dur: `${animationDuration}s`,
         repeatCount: 'indefinite',
         calcMode: 'linear',
         'data-continuous': 'true',
-      });
+      };
+      if (timeline) {
+        textAttributes.values = timeline.values.map(value => `${-value} ${x} ${y}`).join(';');
+        textAttributes.keyTimes = timeline.keyTimes.join(';');
+        textAttributes['data-speed-drift'] = 'true';
+      } else {
+        textAttributes.from = `0 ${x} ${y}`;
+        textAttributes.to = `${-degrees} ${x} ${y}`;
+      }
+      const textAnimation = makeSvgElement('animateTransform', textAttributes);
       text.append(textAnimation);
       textAnimation.beginElement();
     });
@@ -325,7 +344,7 @@ function restartActiveRound() {
   window.clearTimeout(spinTimer);
   stopContinuousSpin();
   board = createBoard(boardSize);
-  session = createSession(boardSize, performance.now());
+  session = createSession(boardSize, session.startedAt);
   ringRotations = Array(activeLayout.rings.length).fill(0);
   renderBoard();
   boardWrap.classList.remove('is-idle', 'is-spinning', 'is-resetting', 'shake');

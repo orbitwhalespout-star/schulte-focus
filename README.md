@@ -6,6 +6,8 @@ Seven presets provide a progression from **Warm-up** through **Torture**. Warm-u
 
 Completion results show the selected preset and active modifiers as concise difficulty badges.
 
+Reset on mistake reshuffles progress back to 1 without restarting the timer. After-tap movement varies both distance and duration on every tap. Torture keeps its continuous direction but adds subtle randomized speed drift; other Continuous configurations remain constant-speed.
+
 ## Debug mode
 
 Press **New board** 10 times to enable an eight-number board distributed across the selected two, three, or four rings. Debug rounds keep presets, Custom controls, movement, coloring, reset behavior, results, and badges active, allowing the complete flow to be tested without selecting 18, 36, or 60 numbers. Debug personal bests are isolated from normal scores. Reload the page to leave debug mode.
