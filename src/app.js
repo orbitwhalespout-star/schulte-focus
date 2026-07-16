@@ -40,6 +40,7 @@ let ringRotations = Array(activeLayout.rings.length).fill(0);
 let spinTimer = null;
 let resetTimer = null;
 let announcementFrame = null;
+let pointerFeedbackSector = null;
 let debugMode = false;
 let newBoardClickCount = 0;
 let activePreset = 'easy';
@@ -389,8 +390,8 @@ function restartActiveRound() {
   updateTimer();
 }
 
-function toleratedExpectedSector(event) {
-  if (!event?.isTrusted || event.detail < 1 || !Number.isFinite(event.clientX) || !Number.isFinite(event.clientY)) return null;
+function expectedSectorAtPointer(event) {
+  if (!event?.isTrusted || !Number.isFinite(event.clientX) || !Number.isFinite(event.clientY)) return null;
   const expected = document.querySelector(`.sector[data-value="${session.next}"]`);
   const ring = expected?.closest('.ring');
   const matrix = ring?.getScreenCTM();
@@ -413,6 +414,10 @@ function toleratedExpectedSector(event) {
   } catch {
     return null;
   }
+}
+
+function toleratedExpectedSector(event) {
+  return event?.detail >= 1 ? expectedSectorAtPointer(event) : null;
 }
 
 function chooseNumber(element, value, event = null) {
@@ -530,6 +535,7 @@ function finishRound() {
   clearGameAnnouncement();
   window.clearTimeout(resetTimer);
   resetTimer = null;
+  clearPointerFeedback();
   stopContinuousSpin();
   lockDifficultyOptions(false);
   timerElement.textContent = formatTime(session.elapsedMs);
@@ -554,6 +560,7 @@ function prepareBoard() {
   window.clearTimeout(spinTimer);
   window.clearTimeout(resetTimer);
   resetTimer = null;
+  clearPointerFeedback();
   stopContinuousSpin();
   boardWrap.classList.remove('is-spinning', 'is-resetting', 'shake');
   updatePresetPresentation();
@@ -578,6 +585,27 @@ function startRound() {
   if (movementMode() === 'continuous') startContinuousSpin();
   updateTimer();
 }
+
+function clearPointerFeedback() {
+  pointerFeedbackSector?.classList.remove('pointer-active');
+  pointerFeedbackSector = null;
+}
+
+function showPointerFeedback(event) {
+  clearPointerFeedback();
+  if (event.button !== 0 || event.isPrimary === false || !session || session.status !== 'playing' || resetTimer !== null || boardWrap.classList.contains('is-spinning')) return;
+  const direct = event.target.closest?.('.sector') ?? null;
+  const accepted = expectedSectorAtPointer(event) ?? direct;
+  if (!accepted || accepted.classList.contains('solved')) return;
+  pointerFeedbackSector = accepted;
+  accepted.classList.add('pointer-active');
+}
+
+boardElement.addEventListener('pointerdown', showPointerFeedback);
+boardElement.addEventListener('pointercancel', clearPointerFeedback);
+boardElement.addEventListener('pointerleave', clearPointerFeedback);
+window.addEventListener('pointerup', clearPointerFeedback);
+window.addEventListener('blur', clearPointerFeedback);
 
 boardElement.addEventListener('click', (event) => {
   const sector = event.target.closest?.('.sector') ?? null;

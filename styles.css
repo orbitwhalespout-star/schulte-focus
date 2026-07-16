@@ -154,16 +154,14 @@ h1 {
   font-variant-numeric: tabular-nums;
   user-select: none;
 }
-.sector:hover path, .sector:focus-visible path { fill: var(--accent); }
+.sector:focus-visible path { fill: var(--accent); }
 .sector:focus-visible path { stroke-width: 7; }
 .sector.solved { pointer-events: none; }
 .sector.found path { fill: var(--found); opacity: 0.5; }
 .sector.found text { opacity: 0.28; }
-.sector.wrong path { fill: var(--error); }
-.board-wrap.no-color .sector:not(.wrong):hover path { fill: var(--surface); }
+.sector.wrong path { fill: var(--error); transition-duration: 0s; }
 .board-wrap.no-color .sector.solved:focus-visible path { fill: var(--surface); }
-.sector:not(.solved):active path,
-.board-wrap.no-color .sector:not(.solved):active path {
+#boardWrap .sector.pointer-active path {
   fill: var(--accent);
   transition-duration: 0s;
 }
