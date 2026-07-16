@@ -68,18 +68,20 @@ test('continuousSpinPlan alternates direction at slow distinct constant speeds',
 });
 
 test('presetConfiguration defines the seven difficulty levels and leaves Custom editable', () => {
-  assert.deepEqual(presetConfiguration('extra-easy'), { movement: 'still', noColor: false, resetOnMistake: false, fourRings: false, twoRings: true });
+  assert.deepEqual(presetConfiguration('warm-up'), { movement: 'still', noColor: false, resetOnMistake: false, fourRings: false, twoRings: true });
+  assert.throws(() => presetConfiguration('extra-easy'), RangeError);
   assert.deepEqual(presetConfiguration('easy'), { movement: 'still', noColor: false, resetOnMistake: false, fourRings: false });
   assert.deepEqual(presetConfiguration('medium'), { movement: 'still', noColor: true, resetOnMistake: false, fourRings: false });
   assert.deepEqual(presetConfiguration('hard'), { movement: 'after-tap', noColor: false, resetOnMistake: false, fourRings: false });
   assert.deepEqual(presetConfiguration('extra-hard'), { movement: 'still', noColor: false, resetOnMistake: false, fourRings: true });
-  assert.deepEqual(presetConfiguration('max'), { movement: 'continuous', noColor: false, resetOnMistake: false, fourRings: true });
-  assert.deepEqual(presetConfiguration('hell'), { movement: 'continuous', noColor: true, resetOnMistake: true, fourRings: true });
+  assert.deepEqual(presetConfiguration('max'), { movement: 'continuous', noColor: true, resetOnMistake: false, fourRings: true });
+  assert.deepEqual(presetConfiguration('torture'), { movement: 'continuous', noColor: true, resetOnMistake: true, fourRings: true });
+  assert.throws(() => presetConfiguration('hell'), RangeError);
   assert.equal(presetConfiguration('custom'), null);
   assert.throws(() => presetConfiguration('unknown'), RangeError);
 });
 
-test('boardLayout returns 18, 36, 60, or an 8-number four-ring debug board', () => {
+test('boardLayout returns standard boards and ring-aware 8-number debug boards', () => {
   assert.deepEqual(boardLayout(), { size: 36, viewRadius: 230, rings: [
     { inner: 0, outer: 78, count: 6 },
     { inner: 78, outer: 148, count: 12 },
@@ -93,21 +95,27 @@ test('boardLayout returns 18, 36, 60, or an 8-number four-ring debug board', () 
   assert.equal(four.size, 60);
   assert.deepEqual(four.rings.map(ring => ring.count), [6, 12, 18, 24]);
   assert.equal(four.viewRadius, 250);
-  const debug = boardLayout({ debug: true });
-  assert.equal(debug.size, 8);
-  assert.deepEqual(debug.rings.map(ring => ring.count), [2, 2, 2, 2]);
-  assert.equal(debug.viewRadius, 250);
+  const debugTwo = boardLayout({ twoRings: true, debug: true });
+  assert.equal(debugTwo.size, 8);
+  assert.deepEqual(debugTwo.rings.map(ring => ring.count), [4, 4]);
+  const debugThree = boardLayout({ debug: true });
+  assert.equal(debugThree.size, 8);
+  assert.deepEqual(debugThree.rings.map(ring => ring.count), [2, 3, 3]);
+  const debugFour = boardLayout({ fourRings: true, debug: true });
+  assert.equal(debugFour.size, 8);
+  assert.deepEqual(debugFour.rings.map(ring => ring.count), [2, 2, 2, 2]);
+  assert.equal(debugFour.viewRadius, 250);
 });
 
 test('difficultyBadges shows presets/debug and omits unmodified Custom play', () => {
   assert.deepEqual(difficultyBadges({ preset: 'custom', movement: 'still' }), []);
-  assert.deepEqual(difficultyBadges({ preset: 'extra-easy', movement: 'still', twoRings: true }), ['EXTRA EASY', 'TWO RINGS']);
+  assert.deepEqual(difficultyBadges({ preset: 'warm-up', movement: 'still', twoRings: true }), ['WARM-UP', 'TWO RINGS']);
   assert.deepEqual(difficultyBadges({ preset: 'easy', movement: 'still' }), ['EASY']);
   assert.deepEqual(difficultyBadges({
-    preset: 'hell', movement: 'continuous', noColor: true, resetOnMistake: true, fourRings: true, debug: true, size: 8,
+    preset: 'torture', movement: 'continuous', noColor: true, resetOnMistake: true, fourRings: true, debug: true, size: 8,
   }), [
     'DEBUG · 8',
-    'HELL',
+    'TORTURE',
     'NO COLOR CUES',
     'CONTINUOUS SPIN',
     'RESET ON MISS',
