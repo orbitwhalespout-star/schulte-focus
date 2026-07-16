@@ -253,6 +253,7 @@ h1 {
 .preset-options button:focus-visible { outline: 3px solid var(--accent-deep); outline-offset: 2px; }
 .preset-options button:disabled { cursor: not-allowed; opacity: 0.56; }
 .preset-options .torture-preset,
+.preset-options .psycho-preset,
 .preset-options .custom-preset {
   grid-column: 1 / -1;
   min-height: 42px;
@@ -433,6 +434,7 @@ h1 {
 .difficulty-badge[data-badge="extra-hard"] { background: #ffbf7d; }
 .difficulty-badge[data-badge="max"] { background: #d3c2ff; }
 .difficulty-badge[data-badge="torture"] { background: #ff9a89; }
+.difficulty-badge[data-badge="psycho"] { background: #ff9bc8; }
 .difficulty-badge[data-badge="no-color-cues"] { background: #e2e4df; }
 .difficulty-badge[data-badge="continuous-spin"] { background: #aee8ff; }
 .difficulty-badge[data-badge="spin-after-tap"] { background: #d8c4ff; }
