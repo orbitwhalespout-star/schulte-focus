@@ -252,9 +252,12 @@ h1 {
 .preset-options button[aria-pressed="true"]::before { content: '✓'; margin-right: 5px; font-weight: 900; }
 .preset-options button:focus-visible { outline: 3px solid var(--accent-deep); outline-offset: 2px; }
 .preset-options button:disabled { cursor: not-allowed; opacity: 0.56; }
+.preset-options .hell-preset,
 .preset-options .custom-preset {
   grid-column: 1 / -1;
   min-height: 42px;
+}
+.preset-options .custom-preset {
   border-style: dashed;
 }
 .preset-options .custom-preset[aria-pressed="true"] { border-style: solid; }
@@ -433,6 +436,7 @@ footer {
   line-height: 1;
 }
 .difficulty-badge[data-badge="medium"] { background: #bde8ff; }
+.difficulty-badge[data-badge="extra-easy"] { background: #e9f7c0; }
 .difficulty-badge[data-badge="hard"] { background: #ffe277; }
 .difficulty-badge[data-badge="extra-hard"] { background: #ffbf7d; }
 .difficulty-badge[data-badge="max"] { background: #d3c2ff; }
@@ -442,6 +446,7 @@ footer {
 .difficulty-badge[data-badge="spin-after-tap"] { background: #d8c4ff; }
 .difficulty-badge[data-badge="reset-on-miss"] { background: #ffb099; }
 .difficulty-badge[data-badge="four-rings"] { background: #aeeecb; }
+.difficulty-badge[data-badge="two-rings"] { background: #cfeecf; }
 .difficulty-badge[data-badge^="debug-"] { color: var(--surface); background: var(--ink); }
 .difficulty-badge::before {
   content: '';

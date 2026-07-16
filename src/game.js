@@ -12,15 +12,17 @@ export function createBoard(size, random = Math.random) {
 }
 
 const PRESETS = {
+  'extra-easy': { movement: 'still', noColor: false, resetOnMistake: false, fourRings: false, twoRings: true },
   easy: { movement: 'still', noColor: false, resetOnMistake: false, fourRings: false },
   medium: { movement: 'still', noColor: true, resetOnMistake: false, fourRings: false },
   hard: { movement: 'after-tap', noColor: false, resetOnMistake: false, fourRings: false },
-  'extra-hard': { movement: 'still', noColor: true, resetOnMistake: true, fourRings: false },
-  max: { movement: 'continuous', noColor: true, resetOnMistake: false, fourRings: true },
+  'extra-hard': { movement: 'still', noColor: false, resetOnMistake: false, fourRings: true },
+  max: { movement: 'continuous', noColor: false, resetOnMistake: false, fourRings: true },
   hell: { movement: 'continuous', noColor: true, resetOnMistake: true, fourRings: true },
 };
 
 const PRESET_LABELS = {
+  'extra-easy': 'EXTRA EASY',
   easy: 'EASY',
   medium: 'MEDIUM',
   hard: 'HARD',
@@ -35,7 +37,7 @@ export function presetConfiguration(preset) {
   return { ...PRESETS[preset] };
 }
 
-export function boardLayout({ fourRings = false, debug = false } = {}) {
+export function boardLayout({ twoRings = false, fourRings = false, debug = false } = {}) {
   if (debug) {
     return {
       size: 8,
@@ -57,6 +59,16 @@ export function boardLayout({ fourRings = false, debug = false } = {}) {
         { inner: 60, outer: 120, count: 12 },
         { inner: 120, outer: 180, count: 18 },
         { inner: 180, outer: 240, count: 24 },
+      ],
+    };
+  }
+  if (twoRings) {
+    return {
+      size: 18,
+      viewRadius: 158,
+      rings: [
+        { inner: 0, outer: 78, count: 6 },
+        { inner: 78, outer: 148, count: 12 },
       ],
     };
   }
@@ -84,7 +96,7 @@ export function normalizeBest(stored) {
   };
 }
 
-export function difficultyBadges({ preset = 'custom', movement = 'still', noColor = false, resetOnMistake = false, fourRings = false, debug = false, size = 8 } = {}) {
+export function difficultyBadges({ preset = 'custom', movement = 'still', noColor = false, resetOnMistake = false, twoRings = false, fourRings = false, debug = false, size = 8 } = {}) {
   const badges = [];
   if (debug) badges.push(`DEBUG · ${size}`);
   if (preset !== 'custom' && PRESET_LABELS[preset]) badges.push(PRESET_LABELS[preset]);
@@ -92,6 +104,7 @@ export function difficultyBadges({ preset = 'custom', movement = 'still', noColo
   if (movement === 'continuous') badges.push('CONTINUOUS SPIN');
   if (movement === 'after-tap') badges.push('SPIN AFTER TAP');
   if (resetOnMistake) badges.push('RESET ON MISS');
+  if (twoRings) badges.push('TWO RINGS');
   if (fourRings) badges.push('FOUR RINGS');
   return badges;
 }
