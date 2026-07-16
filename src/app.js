@@ -60,6 +60,7 @@ function customConfiguration() {
     movement: document.querySelector('input[name="movement"]:checked')?.value ?? 'still',
     noColor: noColorToggle.checked,
     resetOnMistake: resetOnMistakeToggle.checked,
+    twoRings: false,
     fourRings: fourRingsToggle.checked,
   };
 }
@@ -70,6 +71,7 @@ function currentConfiguration() {
   return {
     ...configured,
     preset,
+    twoRings: debugMode ? false : Boolean(configured.twoRings),
     fourRings: debugMode || configured.fourRings,
     debug: debugMode,
     size: boardSize,
@@ -83,14 +85,15 @@ function movementMode() {
 function updatePresetPresentation() {
   const config = currentConfiguration();
   const movement = config.movement === 'after-tap' ? 'Spin after tap' : config.movement === 'continuous' ? 'Continuous' : 'Still';
-  presetSummary.textContent = `${config.fourRings ? 4 : 3} rings · ${movement} · ${config.noColor ? 'No color cues' : 'Color hints'} · ${config.resetOnMistake ? 'Reset on miss' : 'No reset'}`;
+  const ringCount = config.twoRings ? 2 : config.fourRings ? 4 : 3;
+  presetSummary.textContent = `${ringCount} rings · ${movement} · ${config.noColor ? 'No color cues' : 'Color hints'} · ${config.resetOnMistake ? 'Reset on miss' : 'No reset'}`;
   customControls.hidden = selectedPreset() !== 'custom';
   debugIndicator.hidden = !debugMode;
 }
 
 function configureBoardLayout() {
   const config = currentConfiguration();
-  activeLayout = boardLayout({ fourRings: config.fourRings, debug: debugMode });
+  activeLayout = boardLayout({ twoRings: config.twoRings, fourRings: config.fourRings, debug: debugMode });
   boardSize = activeLayout.size;
   ringRotations = Array(activeLayout.rings.length).fill(0);
   const diameter = activeLayout.viewRadius * 2;
@@ -98,6 +101,7 @@ function configureBoardLayout() {
   boardElement.setAttribute('aria-label', `Circular board containing numbers 1 through ${boardSize}`);
   startCopy.textContent = `Find 1 → ${boardSize}`;
   boardWrap.classList.toggle('four-rings', activeLayout.rings.length === 4);
+  boardWrap.classList.toggle('two-rings', activeLayout.rings.length === 2);
   boardWrap.classList.toggle('debug-board', debugMode);
 }
 
@@ -380,6 +384,7 @@ function bestKey() {
     key = `${BEST_KEY}:${movement}:${coloring}`;
   }
   if (config.resetOnMistake) key = `${key}:reset`;
+  if (config.twoRings) key = `${key}:two-rings`;
   if (config.fourRings) key = `${key}:four-rings`;
   if (debugMode) key = `${key}:debug-${boardSize}`;
   return key;
@@ -520,7 +525,7 @@ const savedSettings = readSettings();
 const savedMovement = ['still', 'continuous', 'after-tap'].includes(savedSettings.movement)
   ? savedSettings.movement
   : savedSettings.continuous ? 'continuous' : savedSettings.spin ? 'after-tap' : 'still';
-const validPresets = ['easy', 'medium', 'hard', 'extra-hard', 'max', 'hell', 'custom'];
+const validPresets = ['extra-easy', 'easy', 'medium', 'hard', 'extra-hard', 'max', 'hell', 'custom'];
 const legacyIsEasy = savedMovement === 'still' && !savedSettings.noColor && !savedSettings.resetOnMistake && !savedSettings.fourRings;
 setPreset(validPresets.includes(savedSettings.preset)
   ? savedSettings.preset

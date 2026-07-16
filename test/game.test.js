@@ -67,23 +67,28 @@ test('continuousSpinPlan alternates direction at slow distinct constant speeds',
   ]);
 });
 
-test('presetConfiguration defines the six difficulty levels and leaves Custom editable', () => {
+test('presetConfiguration defines the seven difficulty levels and leaves Custom editable', () => {
+  assert.deepEqual(presetConfiguration('extra-easy'), { movement: 'still', noColor: false, resetOnMistake: false, fourRings: false, twoRings: true });
   assert.deepEqual(presetConfiguration('easy'), { movement: 'still', noColor: false, resetOnMistake: false, fourRings: false });
   assert.deepEqual(presetConfiguration('medium'), { movement: 'still', noColor: true, resetOnMistake: false, fourRings: false });
   assert.deepEqual(presetConfiguration('hard'), { movement: 'after-tap', noColor: false, resetOnMistake: false, fourRings: false });
-  assert.deepEqual(presetConfiguration('extra-hard'), { movement: 'still', noColor: true, resetOnMistake: true, fourRings: false });
-  assert.deepEqual(presetConfiguration('max'), { movement: 'continuous', noColor: true, resetOnMistake: false, fourRings: true });
+  assert.deepEqual(presetConfiguration('extra-hard'), { movement: 'still', noColor: false, resetOnMistake: false, fourRings: true });
+  assert.deepEqual(presetConfiguration('max'), { movement: 'continuous', noColor: false, resetOnMistake: false, fourRings: true });
   assert.deepEqual(presetConfiguration('hell'), { movement: 'continuous', noColor: true, resetOnMistake: true, fourRings: true });
   assert.equal(presetConfiguration('custom'), null);
   assert.throws(() => presetConfiguration('unknown'), RangeError);
 });
 
-test('boardLayout returns 36, 60, or an 8-number four-ring debug board', () => {
+test('boardLayout returns 18, 36, 60, or an 8-number four-ring debug board', () => {
   assert.deepEqual(boardLayout(), { size: 36, viewRadius: 230, rings: [
     { inner: 0, outer: 78, count: 6 },
     { inner: 78, outer: 148, count: 12 },
     { inner: 148, outer: 220, count: 18 },
   ] });
+  const two = boardLayout({ twoRings: true });
+  assert.equal(two.size, 18);
+  assert.deepEqual(two.rings.map(ring => ring.count), [6, 12]);
+  assert.equal(two.viewRadius, 158);
   const four = boardLayout({ fourRings: true });
   assert.equal(four.size, 60);
   assert.deepEqual(four.rings.map(ring => ring.count), [6, 12, 18, 24]);
@@ -96,6 +101,7 @@ test('boardLayout returns 36, 60, or an 8-number four-ring debug board', () => {
 
 test('difficultyBadges shows presets/debug and omits unmodified Custom play', () => {
   assert.deepEqual(difficultyBadges({ preset: 'custom', movement: 'still' }), []);
+  assert.deepEqual(difficultyBadges({ preset: 'extra-easy', movement: 'still', twoRings: true }), ['EXTRA EASY', 'TWO RINGS']);
   assert.deepEqual(difficultyBadges({ preset: 'easy', movement: 'still' }), ['EASY']);
   assert.deepEqual(difficultyBadges({
     preset: 'hell', movement: 'continuous', noColor: true, resetOnMistake: true, fourRings: true, debug: true, size: 8,
