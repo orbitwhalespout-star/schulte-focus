@@ -12,23 +12,23 @@ export function createBoard(size, random = Math.random) {
 }
 
 const PRESETS = {
-  'extra-easy': { movement: 'still', noColor: false, resetOnMistake: false, fourRings: false, twoRings: true },
+  'warm-up': { movement: 'still', noColor: false, resetOnMistake: false, fourRings: false, twoRings: true },
   easy: { movement: 'still', noColor: false, resetOnMistake: false, fourRings: false },
   medium: { movement: 'still', noColor: true, resetOnMistake: false, fourRings: false },
   hard: { movement: 'after-tap', noColor: false, resetOnMistake: false, fourRings: false },
   'extra-hard': { movement: 'still', noColor: false, resetOnMistake: false, fourRings: true },
-  max: { movement: 'continuous', noColor: false, resetOnMistake: false, fourRings: true },
-  hell: { movement: 'continuous', noColor: true, resetOnMistake: true, fourRings: true },
+  max: { movement: 'continuous', noColor: true, resetOnMistake: false, fourRings: true },
+  torture: { movement: 'continuous', noColor: true, resetOnMistake: true, fourRings: true },
 };
 
 const PRESET_LABELS = {
-  'extra-easy': 'EXTRA EASY',
+  'warm-up': 'WARM-UP',
   easy: 'EASY',
   medium: 'MEDIUM',
   hard: 'HARD',
   'extra-hard': 'EXTRA HARD',
   max: 'MAX',
-  hell: 'HELL',
+  torture: 'TORTURE',
 };
 
 export function presetConfiguration(preset) {
@@ -39,6 +39,27 @@ export function presetConfiguration(preset) {
 
 export function boardLayout({ twoRings = false, fourRings = false, debug = false } = {}) {
   if (debug) {
+    if (twoRings) {
+      return {
+        size: 8,
+        viewRadius: 250,
+        rings: [
+          { inner: 0, outer: 120, count: 4 },
+          { inner: 120, outer: 240, count: 4 },
+        ],
+      };
+    }
+    if (!fourRings) {
+      return {
+        size: 8,
+        viewRadius: 250,
+        rings: [
+          { inner: 0, outer: 80, count: 2 },
+          { inner: 80, outer: 160, count: 3 },
+          { inner: 160, outer: 240, count: 3 },
+        ],
+      };
+    }
     return {
       size: 8,
       viewRadius: 250,

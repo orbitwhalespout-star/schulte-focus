@@ -51,7 +51,7 @@ button { font: inherit; }
   flex-direction: column;
 }
 
-.topbar, .game-heading, .status-row, footer {
+.topbar, .game-heading, .status-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -252,7 +252,7 @@ h1 {
 .preset-options button[aria-pressed="true"]::before { content: '✓'; margin-right: 5px; font-weight: 900; }
 .preset-options button:focus-visible { outline: 3px solid var(--accent-deep); outline-offset: 2px; }
 .preset-options button:disabled { cursor: not-allowed; opacity: 0.56; }
-.preset-options .hell-preset,
+.preset-options .torture-preset,
 .preset-options .custom-preset {
   grid-column: 1 / -1;
   min-height: 42px;
@@ -373,14 +373,6 @@ h1 {
 .toggle-control input:checked + .toggle-track { background: var(--accent); }
 .toggle-control input:checked + .toggle-track span { transform: translateX(18px); }
 .toggle-control input:focus-visible + .toggle-track { outline: 3px solid var(--accent-deep); outline-offset: 3px; }
-.coach-copy { max-width: 550px; margin: 18px auto 0; color: var(--muted); text-align: center; line-height: 1.55; }
-
-footer {
-  gap: 20px;
-  padding-top: 22px;
-  color: var(--muted);
-  font-size: 0.72rem;
-}
 
 .dialog {
   width: min(calc(100% - 32px), 460px);
@@ -436,11 +428,11 @@ footer {
   line-height: 1;
 }
 .difficulty-badge[data-badge="medium"] { background: #bde8ff; }
-.difficulty-badge[data-badge="extra-easy"] { background: #e9f7c0; }
+.difficulty-badge[data-badge="warm-up"] { background: #e9f7c0; }
 .difficulty-badge[data-badge="hard"] { background: #ffe277; }
 .difficulty-badge[data-badge="extra-hard"] { background: #ffbf7d; }
 .difficulty-badge[data-badge="max"] { background: #d3c2ff; }
-.difficulty-badge[data-badge="hell"] { background: #ff9a89; }
+.difficulty-badge[data-badge="torture"] { background: #ff9a89; }
 .difficulty-badge[data-badge="no-color-cues"] { background: #e2e4df; }
 .difficulty-badge[data-badge="continuous-spin"] { background: #aee8ff; }
 .difficulty-badge[data-badge="spin-after-tap"] { background: #d8c4ff; }

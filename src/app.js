@@ -71,8 +71,8 @@ function currentConfiguration() {
   return {
     ...configured,
     preset,
-    twoRings: debugMode ? false : Boolean(configured.twoRings),
-    fourRings: debugMode || configured.fourRings,
+    twoRings: Boolean(configured.twoRings),
+    fourRings: Boolean(configured.fourRings),
     debug: debugMode,
     size: boardSize,
   };
@@ -525,10 +525,13 @@ const savedSettings = readSettings();
 const savedMovement = ['still', 'continuous', 'after-tap'].includes(savedSettings.movement)
   ? savedSettings.movement
   : savedSettings.continuous ? 'continuous' : savedSettings.spin ? 'after-tap' : 'still';
-const validPresets = ['extra-easy', 'easy', 'medium', 'hard', 'extra-hard', 'max', 'hell', 'custom'];
+const validPresets = ['warm-up', 'easy', 'medium', 'hard', 'extra-hard', 'max', 'torture', 'custom'];
+const migratedPreset = savedSettings.preset === 'extra-easy'
+  ? 'warm-up'
+  : savedSettings.preset === 'hell' ? 'torture' : savedSettings.preset;
 const legacyIsEasy = savedMovement === 'still' && !savedSettings.noColor && !savedSettings.resetOnMistake && !savedSettings.fourRings;
-setPreset(validPresets.includes(savedSettings.preset)
-  ? savedSettings.preset
+setPreset(validPresets.includes(migratedPreset)
+  ? migratedPreset
   : legacyIsEasy ? 'easy' : 'custom');
 document.querySelector(`input[name="movement"][value="${savedMovement}"]`).checked = true;
 noColorToggle.checked = Boolean(savedSettings.noColor);
