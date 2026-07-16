@@ -616,6 +616,10 @@ boardElement.addEventListener('click', (event) => {
   const tolerated = session?.status === 'playing' ? toleratedExpectedSector(event) : null;
   if (tolerated) chooseNumber(tolerated, session.next);
 });
+document.addEventListener('click', (event) => {
+  if (!debugMode && !event.target.closest?.('#resetButton')) newBoardClickCount = 0;
+}, true);
+
 startButton.addEventListener('click', startRound);
 resetButton.addEventListener('click', () => {
   newBoardClickCount += 1;
