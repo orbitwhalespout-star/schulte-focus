@@ -71,7 +71,7 @@ test('presetConfiguration defines the six difficulty levels and leaves Custom ed
   assert.deepEqual(presetConfiguration('easy'), { movement: 'still', noColor: false, resetOnMistake: false, fourRings: false });
   assert.deepEqual(presetConfiguration('medium'), { movement: 'still', noColor: true, resetOnMistake: false, fourRings: false });
   assert.deepEqual(presetConfiguration('hard'), { movement: 'after-tap', noColor: false, resetOnMistake: false, fourRings: false });
-  assert.deepEqual(presetConfiguration('extra-hard'), { movement: 'after-tap', noColor: true, resetOnMistake: true, fourRings: false });
+  assert.deepEqual(presetConfiguration('extra-hard'), { movement: 'still', noColor: true, resetOnMistake: true, fourRings: false });
   assert.deepEqual(presetConfiguration('max'), { movement: 'continuous', noColor: true, resetOnMistake: false, fourRings: true });
   assert.deepEqual(presetConfiguration('hell'), { movement: 'continuous', noColor: true, resetOnMistake: true, fourRings: true });
   assert.equal(presetConfiguration('custom'), null);

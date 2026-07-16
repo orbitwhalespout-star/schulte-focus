@@ -15,7 +15,7 @@ const PRESETS = {
   easy: { movement: 'still', noColor: false, resetOnMistake: false, fourRings: false },
   medium: { movement: 'still', noColor: true, resetOnMistake: false, fourRings: false },
   hard: { movement: 'after-tap', noColor: false, resetOnMistake: false, fourRings: false },
-  'extra-hard': { movement: 'after-tap', noColor: true, resetOnMistake: true, fourRings: false },
+  'extra-hard': { movement: 'still', noColor: true, resetOnMistake: true, fourRings: false },
   max: { movement: 'continuous', noColor: true, resetOnMistake: false, fourRings: true },
   hell: { movement: 'continuous', noColor: true, resetOnMistake: true, fourRings: true },
 };

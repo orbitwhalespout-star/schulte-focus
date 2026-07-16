@@ -21,7 +21,7 @@ const movementInputs = [...document.querySelectorAll('input[name="movement"]')];
 const noColorToggle = document.querySelector('#noColorToggle');
 const resetOnMistakeToggle = document.querySelector('#resetOnMistakeToggle');
 const fourRingsToggle = document.querySelector('#fourRingsToggle');
-const presetSelect = document.querySelector('#presetSelect');
+const presetButtons = [...document.querySelectorAll('[data-preset]')];
 const presetSummary = document.querySelector('#presetSummary');
 const debugIndicator = document.querySelector('#debugIndicator');
 const customControls = document.querySelector('#customControls');
@@ -42,9 +42,17 @@ let resetTimer = null;
 let announcementFrame = null;
 let debugMode = false;
 let newBoardClickCount = 0;
+let activePreset = 'easy';
 
 function selectedPreset() {
-  return presetSelect.value;
+  return activePreset;
+}
+
+function setPreset(preset) {
+  activePreset = preset;
+  presetButtons.forEach(button => {
+    button.setAttribute('aria-pressed', String(button.dataset.preset === preset));
+  });
 }
 
 function customConfiguration() {
@@ -408,7 +416,7 @@ function saveSettings() {
 }
 
 function lockDifficultyOptions(locked) {
-  presetSelect.disabled = locked;
+  presetButtons.forEach(button => { button.disabled = locked; });
   movementInputs.forEach(input => { input.disabled = locked; });
   noColorToggle.disabled = locked;
   resetOnMistakeToggle.disabled = locked;
@@ -420,6 +428,7 @@ function renderResultDifficulty() {
   const badges = labels.map(label => {
     const badge = document.createElement('span');
     badge.className = 'difficulty-badge';
+    badge.dataset.badge = label.toLowerCase().replace(/\s*·\s*/g, '-').replace(/\s+/g, '-');
     badge.textContent = label;
     return badge;
   });
@@ -496,10 +505,11 @@ fourRingsToggle.addEventListener('change', () => {
   saveSettings();
   prepareBoard();
 });
-presetSelect.addEventListener('change', () => {
+presetButtons.forEach(button => button.addEventListener('click', () => {
+  setPreset(button.dataset.preset);
   saveSettings();
   prepareBoard();
-});
+}));
 document.querySelector('#howButton').addEventListener('click', () => howDialog.showModal());
 document.querySelector('#playAgainButton').addEventListener('click', () => {
   resultDialog.close();
@@ -512,9 +522,9 @@ const savedMovement = ['still', 'continuous', 'after-tap'].includes(savedSetting
   : savedSettings.continuous ? 'continuous' : savedSettings.spin ? 'after-tap' : 'still';
 const validPresets = ['easy', 'medium', 'hard', 'extra-hard', 'max', 'hell', 'custom'];
 const legacyIsEasy = savedMovement === 'still' && !savedSettings.noColor && !savedSettings.resetOnMistake && !savedSettings.fourRings;
-presetSelect.value = validPresets.includes(savedSettings.preset)
+setPreset(validPresets.includes(savedSettings.preset)
   ? savedSettings.preset
-  : legacyIsEasy ? 'easy' : 'custom';
+  : legacyIsEasy ? 'easy' : 'custom');
 document.querySelector(`input[name="movement"][value="${savedMovement}"]`).checked = true;
 noColorToggle.checked = Boolean(savedSettings.noColor);
 resetOnMistakeToggle.checked = Boolean(savedSettings.resetOnMistake);

@@ -47,20 +47,20 @@
         <button class="shuffle-button" id="resetButton" type="button">New board</button>
       </div>
 
-      <div class="preset-control">
-        <label for="presetSelect">Difficulty preset</label>
-        <select id="presetSelect">
-          <option value="easy">Easy</option>
-          <option value="medium">Medium</option>
-          <option value="hard">Hard</option>
-          <option value="extra-hard">Extra Hard</option>
-          <option value="max">Max</option>
-          <option value="hell">Hell</option>
-          <option value="custom">Custom</option>
-        </select>
+      <fieldset class="preset-control">
+        <legend>Difficulty preset</legend>
+        <div class="preset-options" id="presetOptions">
+          <button type="button" data-preset="easy" aria-pressed="true">Easy</button>
+          <button type="button" data-preset="medium" aria-pressed="false">Medium</button>
+          <button type="button" data-preset="hard" aria-pressed="false">Hard</button>
+          <button type="button" data-preset="extra-hard" aria-pressed="false">Extra Hard</button>
+          <button type="button" data-preset="max" aria-pressed="false">Max</button>
+          <button type="button" data-preset="hell" aria-pressed="false">Hell</button>
+          <button type="button" class="custom-preset" data-preset="custom" aria-pressed="false">Custom</button>
+        </div>
         <p id="presetSummary">3 rings · Still · Color hints · No reset</p>
         <p class="debug-indicator" id="debugIndicator" hidden>DEBUG MODE · 8 NUMBERS</p>
-      </div>
+      </fieldset>
 
       <div class="difficulty-controls" id="customControls" aria-label="Custom difficulty options" hidden>
         <fieldset class="movement-control">
