@@ -147,7 +147,7 @@ h1 {
 .sector text {
   fill: var(--ink);
   font-size: 20px;
-  font-weight: 720;
+  font-weight: 600;
   text-anchor: middle;
   dominant-baseline: central;
   pointer-events: none;
@@ -456,7 +456,7 @@ h1 {
   .topbar { padding-inline: 4px; }
   .game { padding-top: 28px; justify-content: flex-start; }
   .game-heading { padding-inline: 5px; }
-  .sector text { font-size: 18px; }
+  .sector text { font-size: 18px; font-weight: 720; }
   .difficulty-controls { gap: 7px; }
   .toggle-control { padding-left: 10px; }
   footer { flex-direction: column; align-items: flex-start; gap: 3px; padding-left: 5px; }
