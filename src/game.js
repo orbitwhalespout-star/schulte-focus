@@ -139,17 +139,33 @@ export function continuousSpinPlan(ringCount = 3) {
   ].slice(0, ringCount);
 }
 
+export function variableSpinTimeline(degrees, random = Math.random) {
+  const segmentCount = 24;
+  const totalDegrees = degrees * 4;
+  const weights = Array.from({ length: segmentCount }, () => 0.88 + random() * 0.24);
+  const scale = segmentCount / weights.reduce((total, weight) => total + weight, 0);
+  const values = [0];
+  weights.forEach(weight => values.push(values.at(-1) + (totalDegrees / segmentCount) * weight * scale));
+  values[values.length - 1] = totalDegrees;
+  const keyTimes = Array.from({ length: segmentCount + 1 }, (_, index) => index / segmentCount);
+  return { values, keyTimes };
+}
+
 export function nextRingRotations(current, random = Math.random) {
   const motion = [
-    { direction: 1, minimum: 45, range: 50 },
-    { direction: -1, minimum: 35, range: 40 },
-    { direction: 1, minimum: 25, range: 35 },
-    { direction: -1, minimum: 20, range: 30 },
+    { direction: 1, minimum: 25, range: 90 },
+    { direction: -1, minimum: 18, range: 82 },
+    { direction: 1, minimum: 15, range: 75 },
+    { direction: -1, minimum: 12, range: 68 },
   ];
   return current.map((angle, index) => {
     const { direction, minimum, range } = motion[index];
     return angle + direction * (minimum + random() * range);
   });
+}
+
+export function afterTapDurations(ringCount, random = Math.random) {
+  return Array.from({ length: ringCount }, () => 620 + Math.round(random() * 660));
 }
 
 export function createSession(size, startedAt) {

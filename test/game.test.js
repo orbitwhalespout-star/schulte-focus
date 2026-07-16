@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  afterTapDurations,
   boardLayout,
   continuousSpinPlan,
   createBoard,
@@ -11,6 +12,7 @@ import {
   normalizeBest,
   presetConfiguration,
   selectNumber,
+  variableSpinTimeline,
 } from '../src/game.js';
 
 test('createBoard returns every number exactly once', () => {
@@ -52,10 +54,16 @@ test('selecting the final number completes the session with elapsed time', () =>
   assert.equal(complete.next, 3);
 });
 
-test('nextRingRotations uses small alternating movements for every active ring', () => {
+test('nextRingRotations uses widely varied but gentle alternating distances', () => {
   const values = [0, 0.5, 0.75, 0.25];
   const random = () => values.shift();
-  assert.deepEqual(nextRingRotations([0, 10, 20, 30], random), [45, -45, 71.25, 2.5]);
+  assert.deepEqual(nextRingRotations([0, 10, 20, 30], random), [25, -49, 91.25, 1]);
+});
+
+test('afterTapDurations varies each ring speed between 620ms and 1280ms', () => {
+  const values = [0, 0.5, 0.75, 0.25];
+  const random = () => values.shift();
+  assert.deepEqual(afterTapDurations(4, random), [620, 950, 1115, 785]);
 });
 
 test('continuousSpinPlan alternates direction at slow distinct constant speeds', () => {
@@ -65,6 +73,21 @@ test('continuousSpinPlan alternates direction at slow distinct constant speeds',
     { degrees: 360, durationSeconds: 60 },
     { degrees: -360, durationSeconds: 72 },
   ]);
+});
+
+test('variableSpinTimeline creates subtle uneven speed segments over four revolutions', () => {
+  let index = 0;
+  const timeline = variableSpinTimeline(360, () => index++ % 2);
+  assert.equal(timeline.values.length, 25);
+  assert.equal(timeline.keyTimes.length, 25);
+  assert.equal(timeline.values[0], 0);
+  assert.equal(timeline.values.at(-1), 1440);
+  assert.equal(timeline.keyTimes[0], 0);
+  assert.equal(timeline.keyTimes.at(-1), 1);
+  const increments = timeline.values.slice(1).map((value, itemIndex) => value - timeline.values[itemIndex]);
+  assert.equal(new Set(increments.map(value => value.toFixed(6))).size, 2);
+  assert.ok(Math.min(...increments) >= 52.8 - 1e-9);
+  assert.ok(Math.max(...increments) <= 67.2 + 1e-9);
 });
 
 test('presetConfiguration defines the seven difficulty levels and leaves Custom editable', () => {
